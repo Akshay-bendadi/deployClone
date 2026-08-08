@@ -2,9 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./assets/fonts/ibm-plex-sans-variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./assets/fonts/space-grotesk-variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/ibm-plex-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./assets/fonts/ibm-plex-mono-500.woff2") format("woff2");
+}
+
 @layer base {
   :root {
-    --background: 220 20% 98%;
+    --background: 220 24% 95%;
     --foreground: 222 22% 12%;
     --card: 0 0% 100%;
     --card-foreground: 222 22% 12%;
@@ -12,16 +44,16 @@
     --popover-foreground: 222 22% 12%;
     --primary: 221 83% 46%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
+    --secondary: 220 18% 93%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 220 14% 95%;
+    --muted: 220 18% 92%;
     --muted-foreground: 220 9% 42%;
     --accent: 221 83% 46%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 54%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
+    --border: 220 15% 85%;
+    --input: 220 15% 85%;
     --ring: 221 83% 46%;
     --safe: 152 62% 38%;
     --safe-foreground: 0 0% 100%;
@@ -69,11 +101,17 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
     background-image:
       linear-gradient(to right, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
   }
 
   body::before {
