@@ -1,64 +1,36 @@
-"use client";
+import { type ReactNode, createContext, useContext, useMemo } from "react";
 
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
-
-export type AuthUser = {
-  name: string;
-  email: string;
-};
+import { useCurrentUserQuery, useLogout } from "../hooks/queries/useAuth";
+import type { CurrentUser } from "../services/auth";
+import { getAuthToken } from "./api";
 
 type AuthContextValue = {
-  user: AuthUser | null;
+  user: CurrentUser | null;
   isAuthenticated: boolean;
-  login: (user: AuthUser) => void;
+  isLoading: boolean;
   logout: () => void;
 };
 
-const AUTH_STORAGE_KEY = "firstbase-user";
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function readStoredUser(): AuthUser | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const stored = window.localStorage.getItem(AUTH_STORAGE_KEY);
-  if (!stored) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(stored) as AuthUser;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const currentUserQuery = useCurrentUserQuery();
+  const logout = useLogout();
 
-  useEffect(() => {
-    setUser(readStoredUser());
-  }, []);
-
-  function login(nextUser: AuthUser) {
-    setUser(nextUser);
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-  }
-
-  function logout() {
-    setUser(null);
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
-  }
-
+  // A token existing but not yet validated is "loading", not "unauthenticated" — using
+  // TanStack's own isLoading (isPending && isFetching) here would race: on the render
+  // where `enabled` first flips true, the fetch hasn't been kicked off yet, so
+  // isFetching is briefly false and this would read as "not loading, not authenticated",
+  // bouncing straight back to /login before /auth/me ever gets called.
+  const hasToken = !!getAuthToken();
   const value = useMemo<AuthContextValue>(
     () => ({
-      user,
-      isAuthenticated: Boolean(user),
-      login,
+      user: currentUserQuery.data ?? null,
+      isAuthenticated: !!currentUserQuery.data,
+      isLoading: hasToken && currentUserQuery.isPending,
       logout,
     }),
-    [user],
+    [currentUserQuery.data, currentUserQuery.isPending, hasToken, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

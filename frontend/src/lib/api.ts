@@ -5,6 +5,20 @@ import { getApiBaseUrl } from "./env";
 const baseURL = getApiBaseUrl();
 const baseOrigin = new URL(baseURL).origin;
 
+const AUTH_TOKEN_STORAGE_KEY = "deployclone_token";
+
+export function getAuthToken(): string | null {
+  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+export function setAuthToken(token: string): void {
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+}
+
+export function clearAuthToken(): void {
+  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
 type ApiError = {
   message: string;
   status?: number;
@@ -46,6 +60,11 @@ api.interceptors.request.use((config) => {
     throw new Error("Blocked cross-origin API request. Use the configured API base URL instead.");
   }
 
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 
@@ -53,14 +72,20 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401 && typeof window !== "undefined") {
+      // Only force a re-login if we *had* a token that got rejected (session expired) —
+      // an anonymous 401 (e.g. a failed login attempt itself) should just surface as an
+      // error message, not redirect away from the login form.
+      if (error.response?.status === 401 && getAuthToken()) {
+        clearAuthToken();
         window.location.href = "/login";
       }
 
-      const responseData = error.response?.data as { message?: string } | undefined;
+      const responseData = error.response?.data as
+        | { detail?: string; message?: string }
+        | undefined;
 
       return Promise.reject({
-        message: responseData?.message || error.message || "Request failed",
+        message: responseData?.detail || responseData?.message || error.message || "Request failed",
         status: error.response?.status,
         data: error.response?.data,
       } satisfies ApiError);

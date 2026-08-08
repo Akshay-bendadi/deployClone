@@ -8,7 +8,7 @@ from app.models.enums import ReleaseStatus
 
 class ReleaseCreate(BaseModel):
     version: str
-    commit_sha: str
+    branch: str
 
 
 class ReleaseRead(BaseModel):
@@ -17,6 +17,7 @@ class ReleaseRead(BaseModel):
     id: uuid.UUID
     project_id: uuid.UUID
     version: str
+    branch: str
     commit_sha: str
     status: ReleaseStatus
     created_at: datetime

@@ -14,12 +14,18 @@ class Settings(BaseSettings):
     zerops_api_token: str | None = None
     zerops_project_id: str | None = None
 
+    github_token: str | None = None
+
     nvidia_api_key: str | None = None
     nvidia_model: str = "meta/llama-3.1-8b-instruct"
 
     risk_safe_max: int = 20
     risk_review_max: int = 50
     risk_high_risk_max: int = 75
+
+    jwt_secret_key: str = "dev-only-insecure-secret-change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7
 
 
 @lru_cache

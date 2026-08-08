@@ -21,6 +21,9 @@ class Environment(Base, IdMixin, CreatedAtMixin):
     release_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("releases.id"), index=True)
     kind: Mapped[EnvironmentKind] = mapped_column(Enum(EnvironmentKind, name="environment_kind"))
     api_url: Mapped[str] = mapped_column(String(500))
+    # candidate only — used to delete the Zerops service once testing finishes, so it
+    # never keeps running (and billing) indefinitely
+    zerops_service_stack_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     release: Mapped["Release"] = relationship(back_populates="environments")
     deployments: Mapped[list["Deployment"]] = relationship(back_populates="environment", cascade="all, delete-orphan")

@@ -7,6 +7,7 @@ from app.models.release import Release
 from app.models.risk_report import RiskReport
 from app.models.test_result import TestResult
 from app.models.test_run import TestRun
+from app.models.user import User
 from app.models.workflow import Workflow
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "RiskReport",
     "TestResult",
     "TestRun",
+    "User",
     "Workflow",
 ]
