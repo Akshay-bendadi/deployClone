@@ -1,17 +1,28 @@
 """Thin wrapper around the Zerops public API (plan.txt §16-17).
 
-Base URL, auth, and every read endpoint below have been verified against a live token
-and project (the Swagger reference is a JS-rendered SPA that can't be scraped, so this
-was confirmed by direct HTTP calls instead — see git history for the discovery trail).
-Write operations (import_service_stack, trigger_deploy) are still unverified and marked
-NotImplementedError rather than guessing at a schema that could silently misbehave
-against a real account.
+Every endpoint below is verified against Zerops' real OpenAPI spec (fetched from
+`{base_url}/swagger/openapi.yml` — their interactive Swagger UI is a JS-rendered SPA
+that can't be scraped, but it loads this static spec file directly) and, for the
+core read/write flow, against a live token and project.
+
+Candidate creation flow (plan.txt §16 steps 3-11):
+  1. import_service_stack  — POST /project/{id}/service-stack/import, creates the
+     service with `startWithoutCode: true` (code is uploaded separately, not via
+     buildFromGit, because buildFromGit only supports a repo's default branch with
+     no way to pin an exact commit — confirmed live: BaseAppVersionPublicGitSource
+     only tracks gitUrl+branchName, no commit field).
+  2. create_app_version     — POST /service-stack/{id}/app-version, returns an
+     upload URL.
+  3. upload_artifact        — PUT the release's exact-commit tarball to that URL.
+  4. build_and_deploy       — POST /app-version/{id}/build-and-deploy with the
+     repository's own zerops.yaml content (already fetched by deployment_service).
 """
 
 from dataclasses import dataclass
 from functools import lru_cache
 
 import httpx
+import yaml
 
 from app.config import get_settings
 
@@ -84,27 +95,61 @@ class ZeropsClient:
         response.raise_for_status()
         return response.json()
 
-    def import_service_stack(self, project_id: str, yaml_definition: str) -> dict:
-        """Creates candidate services (API/DB/worker/Valkey) from a zerops.yaml-style definition.
+    def import_service_stack(
+        self,
+        project_id: str,
+        *,
+        hostname: str,
+        service_type: str,
+        env_vars: dict[str, str] | None = None,
+    ) -> str:
+        """Creates a service with no code yet, ready for an explicit app-version upload.
 
-        TODO: exact endpoint/payload shape unverified — confirm against a live token
-        (likely POST /service-stack/import or similar) before relying on this in production.
+        Returns the new service stack's id.
         """
-        raise NotImplementedError(
-            "ZeropsClient.import_service_stack needs its request shape verified against a "
-            "live Zerops token before use — see module docstring."
-        )
+        service: dict[str, object] = {
+            "hostname": hostname,
+            "type": service_type,
+            "startWithoutCode": True,
+            "enableSubdomainAccess": True,
+        }
+        if env_vars:
+            service["envSecrets"] = env_vars
 
-    def trigger_deploy(self, service_stack_id: str, *, package_path: str) -> dict:
-        """Deploys a build/package to an existing candidate service.
-
-        TODO: exact endpoint/payload shape unverified — confirm against a live token
-        (likely POST /app-version plus an upload step) before relying on this in production.
-        """
-        raise NotImplementedError(
-            "ZeropsClient.trigger_deploy needs its request shape verified against a "
-            "live Zerops token before use — see module docstring."
+        yaml_definition = yaml.safe_dump({"services": [service]}, sort_keys=False)
+        response = self._client.post(
+            f"/project/{project_id}/service-stack/import", json={"yaml": yaml_definition}
         )
+        response.raise_for_status()
+        return response.json()["serviceStacks"][0]["id"]
+
+    def create_app_version(self, service_stack_id: str) -> tuple[str, str]:
+        """Returns (app_version_id, upload_url)."""
+        response = self._client.post(f"/service-stack/{service_stack_id}/app-version", json={})
+        response.raise_for_status()
+        payload = response.json()
+        return payload["id"], payload["uploadUrl"]
+
+    def upload_artifact(self, upload_url: str, content: bytes) -> None:
+        """Uploads a build artifact (gzip tarball) to a presigned URL from create_app_version."""
+        response = httpx.put(upload_url, content=content, timeout=120.0)
+        response.raise_for_status()
+
+    def build_and_deploy(self, app_version_id: str, zeropsyaml_content: str) -> None:
+        response = self._client.put(
+            f"/app-version/{app_version_id}/build-and-deploy",
+            json={"zeropsYaml": zeropsyaml_content},
+        )
+        response.raise_for_status()
+
+    def get_app_version(self, app_version_id: str) -> dict:
+        response = self._client.get(f"/app-version/{app_version_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def delete_service_stack(self, service_stack_id: str) -> None:
+        response = self._client.delete(f"/service-stack/{service_stack_id}")
+        response.raise_for_status()
 
 
 @lru_cache
