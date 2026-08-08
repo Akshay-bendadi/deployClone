@@ -1,4 +1,6 @@
-// Core domain types for deployClone, mirrored from plan.txt (sections 12-27).
+// Domain types mirrored exactly from the backend's Pydantic response schemas
+// (backend/app/schemas/*.py) — field names match the real JSON wire format
+// (snake_case), since nothing on either side converts casing.
 
 export type ReleaseStatus =
   | "CREATED"
@@ -11,79 +13,97 @@ export type ReleaseStatus =
   | "FAILED";
 
 export type RiskVerdict = "SAFE" | "REVIEW" | "HIGH_RISK" | "BLOCK";
+export type EnvironmentKind = "production" | "candidate";
+export type DeploymentStatus = "pending" | "in_progress" | "complete" | "failed";
+export type TestRunStatus = "pending" | "running" | "passed" | "failed";
+export type ComparisonCategory = "functional" | "performance" | "worker";
+export type RegressionSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export type EnvVar = {
+  key: string;
+  value: string;
+};
 
 export type Project = {
   id: string;
   name: string;
   repository: string;
-  productionUrl: string;
-  productionVersion: string;
+  production_url: string;
+  zerops_runtime: string;
+  production_branch: string;
+  production_commit_sha: string;
+  env_vars: EnvVar[];
+  build_command: string | null;
+  start_command: string | null;
 };
 
 export type Release = {
   id: string;
-  projectId: string;
+  project_id: string;
   version: string;
-  commitSha: string;
+  branch: string;
+  commit_sha: string;
   status: ReleaseStatus;
-  createdAt: string;
+  created_at: string;
 };
 
 export type Environment = {
   id: string;
-  releaseId: string;
-  kind: "production" | "candidate";
-  apiUrl: string;
+  release_id: string;
+  kind: EnvironmentKind;
+  api_url: string;
+  candidate_torn_down: boolean;
 };
 
 export type Deployment = {
   id: string;
-  environmentId: string;
+  environment_id: string;
   step: string;
-  status: "pending" | "in_progress" | "complete" | "failed";
+  status: DeploymentStatus;
+};
+
+export type WorkflowStep = {
+  name: string;
+  method: string;
+  path: string;
+  body?: Record<string, unknown> | null;
 };
 
 export type Workflow = {
   id: string;
+  project_id: string;
   name: string;
-  steps: string[];
+  steps: WorkflowStep[];
 };
 
 export type TestRun = {
   id: string;
-  releaseId: string;
-  workflowId: string;
-  environmentId: string;
-  status: "pending" | "running" | "passed" | "failed";
-};
-
-export type TestResult = {
-  id: string;
-  testRunId: string;
-  httpStatus: number;
-  latencyMs: number;
-  responseBody: unknown;
-};
-
-export type Comparison = {
-  id: string;
-  releaseId: string;
-  category: "functional" | "performance" | "worker";
-  productionValue: unknown;
-  candidateValue: unknown;
+  release_id: string;
+  workflow_id: string;
+  environment_id: string;
+  status: TestRunStatus;
 };
 
 export type Regression = {
   id: string;
-  comparisonId: string;
-  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  comparison_id: string;
+  severity: RegressionSeverity;
   summary: string;
+};
+
+export type Comparison = {
+  id: string;
+  release_id: string;
+  category: ComparisonCategory;
+  production_value: Record<string, unknown> | null;
+  candidate_value: Record<string, unknown> | null;
+  regressions: Regression[];
 };
 
 export type RiskReport = {
   id: string;
-  releaseId: string;
-  riskScore: number;
+  release_id: string;
+  risk_score: number;
   verdict: RiskVerdict;
-  aiExplanation?: string;
+  ai_explanation: string | null;
 };
