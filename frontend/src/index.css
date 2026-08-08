@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 98%;
+    --foreground: 222 22% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 22% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 22% 12%;
+    --primary: 221 83% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 14% 95%;
+    --muted-foreground: 220 9% 42%;
+    --accent: 221 83% 46%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 54%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 221 83% 46%;
+    --safe: 152 62% 38%;
+    --safe-foreground: 0 0% 100%;
+    --review: 38 92% 50%;
+    --review-foreground: 24 40% 12%;
+    --block: 0 74% 47%;
+    --block-foreground: 0 0% 100%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222 26% 8%;
+    --foreground: 0 0% 98%;
+    --card: 222 20% 11%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 20% 11%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 17% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 222 17% 14%;
+    --muted-foreground: 0 0% 72%;
+    --accent: 221 83% 62%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 41%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 17% 16%;
+    --input: 222 17% 16%;
+    --ring: 221 83% 62%;
+    --safe: 152 55% 45%;
+    --safe-foreground: 222 26% 8%;
+    --review: 38 92% 58%;
+    --review-foreground: 24 40% 10%;
+    --block: 0 74% 54%;
+    --block-foreground: 0 0% 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image:
+      linear-gradient(to right, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.03), transparent 16%);
+    opacity: 0.55;
+  }
+
+  #root,
+  body,
+  html {
+    min-height: 100%;
+  }
+}
