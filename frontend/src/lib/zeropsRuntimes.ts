@@ -12,3 +12,7 @@ export const ZEROPS_RUNTIMES = [
   { value: "alpine/php-nginx@8.4", label: "PHP 8.4 + Nginx" },
   { value: "alpine/static", label: "Static files" },
 ] as const;
+
+export function runtimeLabel(value: string): string {
+  return ZEROPS_RUNTIMES.find((r) => r.value === value)?.label ?? value;
+}

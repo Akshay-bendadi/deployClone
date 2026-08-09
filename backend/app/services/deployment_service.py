@@ -20,6 +20,7 @@ and generate the rest).
 import io
 import tarfile
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import NoReturn
 
@@ -68,9 +69,10 @@ class DeploymentError(Exception):
         super().__init__(f"{step}: {reason}")
 
 
-def _candidate_hostname(release: Release) -> str:
-    """<=25 chars, lowercase ascii/digits only, per Zerops' hostname rules."""
-    return f"c{str(release.id).replace('-', '')}"[:25]
+def _candidate_hostname() -> str:
+    """<=25 chars, lowercase ascii/digits only, per Zerops' hostname rules.
+    Unique per attempt so retries never collide with a still-deleting twin."""
+    return f"c{uuid.uuid4().hex}"[:25]
 
 
 def _env_vars_dict(project: Project) -> dict[str, str]:
@@ -106,13 +108,33 @@ def _resolve_port(project: Project) -> int:
 _RUNTIME_INSTALL_COMMANDS = {
     "nodejs": "npm install",
     "bun": "bun install",
-    "python": "pip install -r requirements.txt",
+    "python": "pip install --no-cache-dir -r requirements.txt --target .packages",
     "go": "go mod download",
     "ruby": "bundle install",
     "dotnet": "dotnet restore",
     "php-nginx": "composer install",
     # rust/java/static: no standard single install step to assume — left to build_command.
 }
+
+_RUNTIME_EXTRA_ENV = {
+    "python": {"PYTHONPATH": ".packages"},
+}
+
+
+_PYTHON_CLI_TOOLS = {"uvicorn", "gunicorn", "flask", "django", "hypercorn", "daphne"}
+
+
+def _python_module_start(start_command: str) -> str:
+    """Rewrites 'uvicorn main:app ...' to 'python -m uvicorn main:app ...'
+    so the tool is found via PYTHONPATH instead of requiring it on PATH."""
+    if "python -m" in start_command or "python3 -m" in start_command:
+        return start_command
+    parts = start_command.split()
+    for i, part in enumerate(parts):
+        if part in _PYTHON_CLI_TOOLS:
+            parts[i] = f"python -m {part}"
+            return " ".join(parts)
+    return start_command
 
 
 def _runtime_family(runtime: str) -> str:
@@ -130,15 +152,22 @@ def _generate_zerops_yaml(project: Project, hostname: str) -> str:
     if project.build_command:
         build_commands.append(project.build_command)
 
+    start_command = project.start_command
+    family = _runtime_family(project.zerops_runtime)
+    if family == "python" and start_command:
+        start_command = _python_module_start(start_command)
+
     run_config: dict = {
         "base": project.zerops_runtime,
-        "start": project.start_command,
+        "start": start_command,
         "ports": [{"port": _resolve_port(project), "httpSupport": True}],
     }
 
     env_vars = _env_vars_dict(project)
-    if env_vars:
-        run_config["envVariables"] = env_vars
+    runtime_env = _RUNTIME_EXTRA_ENV.get(_runtime_family(project.zerops_runtime), {})
+    merged_env = {**runtime_env, **env_vars}
+    if merged_env:
+        run_config["envVariables"] = merged_env
 
     config = {
         "zerops": [
@@ -266,7 +295,7 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
     start("Prepare deployment definition")
     if not project.start_command or not project.start_command.strip():
         fail("Prepare deployment definition", "Project has no start command configured")
-    hostname = _candidate_hostname(release)
+    hostname = _candidate_hostname()
     zerops_yaml = _generate_zerops_yaml(project, hostname)
     finish("Prepare deployment definition")
 

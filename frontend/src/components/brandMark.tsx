@@ -22,7 +22,7 @@ export function BrandMark() {
           fill="none"
         />
       </svg>
-      <span className="text-[0.95rem] font-semibold tracking-[-0.02em]">
+      <span className="text-lg font-semibold tracking-[-0.02em]">
         deploy<span className="text-muted-foreground">Clone</span>
       </span>
     </div>

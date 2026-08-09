@@ -9,11 +9,7 @@ import { ReleaseStatusBadge } from "../components/status/releaseStatusBadge";
 import { Skeleton } from "../components/ui/skeleton";
 import { useProjectQuery } from "../hooks/queries/useProjects";
 import { useReleasesQuery } from "../hooks/queries/useReleases";
-import { ZEROPS_RUNTIMES } from "../lib/zeropsRuntimes";
-
-function runtimeLabel(value: string): string {
-  return ZEROPS_RUNTIMES.find((r) => r.value === value)?.label ?? value;
-}
+import { runtimeLabel } from "../lib/zeropsRuntimes";
 
 function MetaChip({
   icon,
@@ -96,7 +92,7 @@ export function ProjectShell() {
         <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.03em]">{project.name}</h1>
+              <h1 className="text-4xl font-semibold tracking-[-0.03em]">{project.name}</h1>
               <Link
                 to={`/projects/${project.id}/edit`}
                 aria-label="Edit project"

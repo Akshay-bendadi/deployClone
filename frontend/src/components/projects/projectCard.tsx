@@ -1,17 +1,13 @@
 import { ArrowUpRight, GitBranch, Pencil, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ZEROPS_RUNTIMES } from "../../lib/zeropsRuntimes";
+import { runtimeLabel } from "../../lib/zeropsRuntimes";
 import type { Project } from "../../types/domain";
 import { ReleaseStatusBadge } from "../status/releaseStatusBadge";
 import { TwinGlyph } from "../twinGlyph";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { DeleteProjectDialog } from "./deleteProjectDialog";
-
-function runtimeLabel(value: string): string {
-  return ZEROPS_RUNTIMES.find((r) => r.value === value)?.label ?? value;
-}
 
 export function ProjectCard({ project }: { project: Project }) {
   const navigate = useNavigate();
