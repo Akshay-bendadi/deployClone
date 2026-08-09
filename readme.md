@@ -1,5 +1,8 @@
 # deployClone
 
+> **Zerops Challenge — August 2026**
+> Built for the [Zerops Hackathon](https://zerops.io). Deployed entirely on Zerops infrastructure.
+
 Modern deployments can be successful while the release itself is broken.
 
 A green CI pipeline proves your code compiled and your tests passed — it does not prove the release behaves the same as production. deployClone catches that gap.
