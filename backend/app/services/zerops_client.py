@@ -18,6 +18,7 @@ Candidate creation flow (plan.txt §16 steps 3-11):
      repository's own zerops.yaml content (already fetched by deployment_service).
 """
 
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -111,6 +112,11 @@ class ZeropsClient:
             "hostname": hostname,
             "type": service_type,
             "startWithoutCode": True,
+            # Confirmed via direct testing (with Zerops support) that this flag is
+            # silently ignored at import time — subdomain routing never actually gets
+            # enabled from this alone, producing a permanent 502 with no error anywhere.
+            # Kept here for whenever that's fixed; enable_subdomain_access() below is
+            # the real, verified-working mechanism and must always be called too.
             "enableSubdomainAccess": True,
         }
         if env_vars:
@@ -122,6 +128,33 @@ class ZeropsClient:
         )
         response.raise_for_status()
         return response.json()["serviceStacks"][0]["id"]
+
+    def enable_subdomain_access(self, service_stack_id: str) -> None:
+        """Actually enables subdomain routing for a service.
+
+        Required even though `import_service_stack` also sets `enableSubdomainAccess:
+        true` in its YAML — that field is confirmed silently ignored (verified live
+        with Zerops support), so without this explicit call the service builds and
+        reports ACTIVE but is permanently unreachable (502) with zero indication why.
+
+        This can only succeed once the service is recognized as HTTP (i.e. its `ports`
+        with httpSupport from the build have actually been applied) — calling it right
+        when the app-version first reports ACTIVE can still 400 with
+        "Service stack is not http or https", since that metadata propagates a moment
+        after the status flips. Retried briefly to absorb that race.
+        """
+        last_exc: httpx.HTTPStatusError | None = None
+        for attempt in range(5):
+            if attempt:
+                time.sleep(3)
+            response = self._client.put(f"/service-stack/{service_stack_id}/enable-subdomain-access", json={})
+            if response.status_code < 400:
+                return
+            last_exc = httpx.HTTPStatusError(
+                f"{response.status_code}: {response.text}", request=response.request, response=response
+            )
+        assert last_exc is not None
+        raise last_exc
 
     def create_app_version(self, service_stack_id: str) -> tuple[str, str]:
         """Returns (app_version_id, upload_url)."""

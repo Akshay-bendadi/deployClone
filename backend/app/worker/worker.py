@@ -62,6 +62,7 @@ def _fail_orphaned_releases() -> None:
             )
             for step in stuck_steps:
                 step.status = DeploymentStatus.FAILED
+                step.reason = "Worker process restarted mid-deployment — this step's outcome is unknown"
 
         if orphaned:
             db.commit()

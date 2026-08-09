@@ -31,7 +31,13 @@ export function DeploymentPage() {
   const deploymentsQuery = useDeploymentStepsQuery(candidate?.id, isActive);
   const teardownMutation = useTeardownCandidateMutation(latestRelease.id);
 
-  const canBrowse = !!candidate?.api_url && !candidate.candidate_torn_down;
+  // The backend records the candidate's URL before running its health check (so it's
+  // visible for debugging even on failure) — only treat it as actually browsable once
+  // that step reports complete, otherwise the link just 404s/502s.
+  const healthChecksPassed = deploymentsQuery.data?.some(
+    (step) => step.step === "Run health checks" && step.status === "complete",
+  );
+  const canBrowse = !!candidate?.api_url && !candidate.candidate_torn_down && healthChecksPassed;
 
   return (
     <div className="space-y-6">

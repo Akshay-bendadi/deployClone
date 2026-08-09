@@ -44,10 +44,12 @@ LIFECYCLE_STEPS = [
     "Run health checks",
 ]
 
-_DEFAULT_PORT = 8080
+_DEFAULT_PORT = 3000
 
 _BUILD_POLL_INTERVAL_S = 5.0
 _BUILD_POLL_TIMEOUT_S = 600.0
+_HEALTH_CHECK_ATTEMPTS = 10
+_HEALTH_CHECK_INTERVAL_S = 3.0
 _TERMINAL_STATUSES = {
     "ACTIVE",
     "DEPLOY_FAILED",
@@ -75,10 +77,16 @@ def _env_vars_dict(project: Project) -> dict[str, str]:
 
 
 def _resolve_port(project: Project) -> int:
-    """A "PORT" entry in the project's own env vars wins; otherwise a fixed default.
+    """Which port Zerops should route traffic to.
 
-    Kept in sync with `_generate_zerops_yaml`'s `run.ports` — the app must listen on
-    whatever port we declare there, so both need to agree on the same source of truth.
+    We deliberately do NOT try to inject a PORT env var to force the app onto a
+    specific port — confirmed by direct testing that neither `envSecrets` nor
+    `envVariables` on the service-import YAML actually reach the container (silently
+    dropped, no error). Zerops' own official recipes (e.g. recipe-nextjs-nodejs) don't
+    fight this either — they just leave the framework on its own default port and match
+    that in `ports`. A "PORT" entry in the project's env vars is honored here only as
+    "this is the port our own start_command already binds to" (e.g. if start_command is
+    `next start -p 4000`), not as something we can push into the app ourselves.
     """
     raw = _env_vars_dict(project).get("PORT")
     if raw:
@@ -87,20 +95,6 @@ def _resolve_port(project: Project) -> int:
         except ValueError:
             pass
     return _DEFAULT_PORT
-
-
-def _candidate_env_vars(project: Project) -> dict[str, str]:
-    """Env vars injected into the candidate container, always including PORT.
-
-    Declaring a port in zerops.yaml's `run.ports` only tells Zerops which port to route
-    traffic to — it does nothing to make the app itself listen there. Most frameworks
-    (Next.js, Express, etc.) bind to a `PORT` env var if one is set, so without this the
-    app binds to its own default (often 3000) while Zerops routes to 8080, producing a
-    502 even though the deploy itself "succeeded".
-    """
-    env_vars = _env_vars_dict(project)
-    env_vars.setdefault("PORT", str(_resolve_port(project)))
-    return env_vars
 
 
 # Per-runtime dependency install step, run automatically before the project's own
@@ -190,6 +184,22 @@ def _public_url(zerops: ZeropsClient, service_stack_id: str) -> str | None:
     return None
 
 
+def _wait_for_healthy(url: str) -> bool:
+    """Actually pings the candidate until it responds, instead of assuming a build that
+    reached ACTIVE means the app is reachable. A container can finish building and still
+    take a few seconds before the process inside is actually listening — polling here is
+    what turns "Run health checks" into a real check instead of just recording a URL."""
+    for _ in range(_HEALTH_CHECK_ATTEMPTS):
+        try:
+            response = httpx.get(url, timeout=10.0, follow_redirects=True)
+            if response.status_code < 500:
+                return True
+        except httpx.HTTPError:
+            pass
+        time.sleep(_HEALTH_CHECK_INTERVAL_S)
+    return False
+
+
 def run_candidate_deployment(db: Session, release: Release) -> Environment:
     """Runs the full candidate lifecycle, recording each step as a Deployment row."""
     environment = Environment(release_id=release.id, kind=EnvironmentKind.CANDIDATE, api_url="")
@@ -213,6 +223,7 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
 
     def fail(step_name: str, reason: str) -> NoReturn:
         step_rows[step_name].status = DeploymentStatus.FAILED
+        step_rows[step_name].reason = reason
         db.commit()
         raise DeploymentError(step_name, reason)
 
@@ -241,14 +252,24 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
 
     start("Create candidate service")
     try:
+        # KNOWN GAP: env_vars here (plan.txt §17's candidate-only config, e.g. a test
+        # DATABASE_URL) is confirmed non-functional — verified by direct testing that
+        # neither `envSecrets` nor `envVariables` on this import YAML actually reach the
+        # container (silently dropped, no error, nothing shows in the service's env
+        # listing). Still passed through in case Zerops fixes this service-side, but the
+        # real mechanism (if one exists) hasn't been found yet.
         service_stack_id = zerops.import_service_stack(
             settings.zerops_project_id,
             hostname=hostname,
             service_type=project.zerops_runtime,
-            env_vars=_candidate_env_vars(project),
+            env_vars=_env_vars_dict(project) or None,
         )
     except httpx.HTTPError as exc:
         fail("Create candidate service", str(exc))
+    # Record the id immediately, before anything that could still fail — otherwise a
+    # later failure in this same step leaves a real Zerops service created but
+    # untracked in our DB, which _cleanup_candidate can never find or delete, and its
+    # hostname permanently blocks retries (hostnames are deterministic per release).
     environment.zerops_service_stack_id = service_stack_id
     db.commit()
     finish("Create candidate service")
@@ -285,11 +306,26 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
     finish("Build and deploy candidate")
 
     start("Run health checks")
+    # Must happen after the build, not at service creation — enable-subdomain-access
+    # requires the service to already be recognized as HTTP (i.e. have `ports` with
+    # httpSupport from the deploy-time zerops.yaml), which only exists once a build has
+    # actually run. Calling it earlier 400s with "Service stack is not http or https".
+    try:
+        zerops.enable_subdomain_access(service_stack_id)
+    except httpx.HTTPError as exc:
+        fail("Run health checks", f"Could not enable subdomain access: {exc}")
     public_url = _public_url(zerops, service_stack_id)
     if not public_url:
         fail("Run health checks", "Candidate deployed but has no public URL")
     environment.api_url = public_url
     db.commit()
+    if not _wait_for_healthy(public_url):
+        fail(
+            "Run health checks",
+            f"Candidate deployed to {public_url} but never responded successfully after "
+            f"{_HEALTH_CHECK_ATTEMPTS * _HEALTH_CHECK_INTERVAL_S:.0f}s — check the app's own "
+            "logs on Zerops, it likely crashed on startup",
+        )
     finish("Run health checks")
 
     return environment

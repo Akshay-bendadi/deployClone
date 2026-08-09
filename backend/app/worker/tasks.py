@@ -138,6 +138,7 @@ def _cleanup_candidate(db: Session, release: Release) -> None:
             logger.info(
                 "Deleted candidate Zerops service %s for release %s", candidate.zerops_service_stack_id, release.id
             )
+            candidate.zerops_service_stack_id = None
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code in (400, 404):
                 # Already deleted — expected when a release with multiple retries has more
@@ -147,6 +148,7 @@ def _cleanup_candidate(db: Session, release: Release) -> None:
                     candidate.zerops_service_stack_id,
                     release.id,
                 )
+                candidate.zerops_service_stack_id = None
             else:
                 logger.exception(
                     "Failed to delete candidate Zerops service %s for release %s — check Zerops manually",
@@ -159,9 +161,36 @@ def _cleanup_candidate(db: Session, release: Release) -> None:
                 candidate.zerops_service_stack_id,
                 release.id,
             )
+    db.commit()
+
+
+def _reset_previous_test_data(db: Session, release: Release) -> None:
+    """Clears a prior attempt's test evidence before a retest starts.
+
+    Without this, retesting the same release crashes outright: RiskReport has a
+    one-per-release unique constraint, so a second INSERT for the same release_id
+    raises a UniqueViolation that leaves the release stuck at TESTING forever (nothing
+    ever moves it to a terminal status again). It also left stale TestRun/Comparison
+    rows from earlier attempts mixed in with the current one, making Test Run/Evidence
+    show confusing leftover results instead of just the latest attempt.
+    """
+    db.query(TestResult).filter(
+        TestResult.test_run_id.in_(db.query(TestRun.id).filter(TestRun.release_id == release.id))
+    ).delete(synchronize_session=False)
+    db.query(TestRun).filter(TestRun.release_id == release.id).delete(synchronize_session=False)
+
+    db.query(Regression).filter(
+        Regression.comparison_id.in_(db.query(Comparison.id).filter(Comparison.release_id == release.id))
+    ).delete(synchronize_session=False)
+    db.query(Comparison).filter(Comparison.release_id == release.id).delete(synchronize_session=False)
+
+    db.query(RiskReport).filter(RiskReport.release_id == release.id).delete(synchronize_session=False)
+    db.commit()
 
 
 def _run_release_test(db: Session, release: Release) -> None:
+    _reset_previous_test_data(db, release)
+
     production = Environment(
         release_id=release.id,
         kind=EnvironmentKind.PRODUCTION,
