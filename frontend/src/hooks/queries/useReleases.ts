@@ -5,6 +5,7 @@ import type { CreateReleasePayload } from "../../services/releases";
 import {
   createRelease,
   getBranchDiff,
+  getDiffAnalysis,
   listReleases,
   triggerTestRelease,
 } from "../../services/releases";
@@ -45,5 +46,14 @@ export function useBranchDiffQuery(releaseId: string | undefined) {
     queryKey: queryKeys.branchDiff(releaseId ?? ""),
     queryFn: () => getBranchDiff(releaseId!),
     enabled: !!releaseId,
+  });
+}
+
+export function useDiffAnalysisQuery(releaseId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.diffAnalysis(releaseId ?? ""),
+    queryFn: () => getDiffAnalysis(releaseId!),
+    enabled: !!releaseId,
+    retry: false,
   });
 }

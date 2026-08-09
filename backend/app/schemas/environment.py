@@ -32,3 +32,5 @@ class DeploymentRead(BaseModel):
     step: str
     status: DeploymentStatus
     reason: str | None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None

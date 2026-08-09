@@ -14,6 +14,7 @@ export const queryKeys = {
   testRuns: (releaseId: string) => ["test-runs", releaseId] as const,
   workflows: (projectId: string) => ["workflows", projectId] as const,
   branchDiff: (releaseId: string) => ["branch-diff", releaseId] as const,
+  diffAnalysis: (releaseId: string) => ["diff-analysis", releaseId] as const,
   repositoryBranches: (repository: string) => ["repository-branches", repository] as const,
   projectBranches: (projectId: string) => ["project-branches", projectId] as const,
 };

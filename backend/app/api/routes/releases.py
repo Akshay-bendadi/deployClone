@@ -17,6 +17,7 @@ from app.schemas.environment import EnvironmentRead
 from app.schemas.release import ReleaseCreate, ReleaseRead
 from app.schemas.risk_report import RiskReportRead
 from app.schemas.test_run import TestRunRead
+from app.services.diff_analyzer import analyze_diff
 from app.services.github_client import BranchDiff, GitHubError, compare_branches, resolve_branch_commit
 from app.services.zerops_client import get_zerops_client
 from app.worker.queue import enqueue_release_test
@@ -171,3 +172,43 @@ def get_risk_report(release_id: uuid.UUID, db: SessionDep, current_user: Current
     if risk_report is None:
         raise HTTPException(status_code=404, detail="Risk report not ready yet")
     return risk_report
+
+
+@releases_router.get("/{release_id}/diff-analysis")
+def get_diff_analysis(release_id: uuid.UUID, db: SessionDep, current_user: CurrentUserDep) -> dict:
+    release = get_owned_release_or_404(db, release_id, current_user)
+    project = release.project
+    try:
+        diff = compare_branches(
+            project.repository, project.production_commit_sha, release.commit_sha, token=project.github_token
+        )
+    except GitHubError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not diff.files:
+        return {
+            "summary": "No file changes detected between production and this release branch. "
+            "This usually means you selected the same branch as production, or the branch "
+            "has already been merged. Try selecting a different branch with actual changes.",
+            "new_endpoints": [],
+            "removed_endpoints": [],
+            "new_dependencies": [],
+            "removed_dependencies": [],
+            "new_pages": [],
+            "breaking_changes": [],
+            "risk_flags": [],
+        }
+    analysis = analyze_diff(diff)
+    if analysis is None:
+        return {
+            "summary": f"This release changes {len(diff.files)} file(s) across {diff.total_commits} commit(s). "
+            "AI-powered analysis of new endpoints, dependencies, and breaking changes is available "
+            "when NVIDIA_API_KEY is configured.",
+            "new_endpoints": [],
+            "removed_endpoints": [],
+            "new_dependencies": [],
+            "removed_dependencies": [],
+            "new_pages": [],
+            "breaking_changes": [],
+            "risk_flags": [],
+        }
+    return analysis

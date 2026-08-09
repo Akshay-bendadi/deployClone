@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { ArrowLeft, ArrowUpRight, FolderGit2, GitBranch, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, GitBranch, Pencil } from "lucide-react";
 import { Link, Outlet, useParams } from "react-router-dom";
 
 import { ProjectNav } from "../components/layout/projectNav";
@@ -95,11 +95,7 @@ export function ProjectShell() {
         </Link>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <div>
-            <p className="flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              <FolderGit2 className="h-3.5 w-3.5" />
-              {project.repository}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <h1 className="text-3xl font-semibold tracking-[-0.03em]">{project.name}</h1>
               <Link
                 to={`/projects/${project.id}/edit`}
