@@ -129,6 +129,16 @@ def _generate_zerops_yaml(project: Project, hostname: str) -> str:
     if project.build_command:
         build_commands.append(project.build_command)
 
+    run_config: dict = {
+        "base": project.zerops_runtime,
+        "start": project.start_command,
+        "ports": [{"port": _resolve_port(project), "httpSupport": True}],
+    }
+
+    env_vars = _env_vars_dict(project)
+    if env_vars:
+        run_config["envVariables"] = env_vars
+
     config = {
         "zerops": [
             {
@@ -138,11 +148,7 @@ def _generate_zerops_yaml(project: Project, hostname: str) -> str:
                     "buildCommands": build_commands,
                     "deployFiles": "./",
                 },
-                "run": {
-                    "base": project.zerops_runtime,
-                    "start": project.start_command,
-                    "ports": [{"port": _resolve_port(project), "httpSupport": True}],
-                },
+                "run": run_config,
             }
         ]
     }
