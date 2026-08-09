@@ -8,7 +8,7 @@ zerops:
         - cd frontend && pnpm build
       deployFiles: frontend/dist/~
       envVariables:
-        VITE_API_URL: <your-api-subdomain-url>
+        VITE_API_URL: https://api-1f9-8000.ny1.zerops.app
     run:
       base: static
 

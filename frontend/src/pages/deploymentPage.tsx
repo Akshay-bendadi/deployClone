@@ -140,7 +140,11 @@ export function DeploymentPage() {
             ) : (
               <>
                 {deploymentsQuery.data?.map((step) => (
-                  <DeploymentStepRow key={step.id} step={step} />
+                  <DeploymentStepRow
+                    key={step.id}
+                    step={step}
+                    firstStartedAt={deploymentsQuery.data?.[0]?.started_at}
+                  />
                 ))}
                 {deploymentsQuery.data?.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No steps recorded yet.</p>

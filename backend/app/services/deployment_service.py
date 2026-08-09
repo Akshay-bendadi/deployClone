@@ -20,6 +20,7 @@ and generate the rest).
 import io
 import tarfile
 import time
+from datetime import datetime, timezone
 from typing import NoReturn
 
 import httpx
@@ -240,14 +241,17 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
 
     def start(step_name: str) -> None:
         step_rows[step_name].status = DeploymentStatus.IN_PROGRESS
+        step_rows[step_name].started_at = datetime.now(timezone.utc)
         db.commit()
 
     def finish(step_name: str) -> None:
         step_rows[step_name].status = DeploymentStatus.COMPLETE
+        step_rows[step_name].finished_at = datetime.now(timezone.utc)
         db.commit()
 
     def fail(step_name: str, reason: str) -> NoReturn:
         step_rows[step_name].status = DeploymentStatus.FAILED
+        step_rows[step_name].finished_at = datetime.now(timezone.utc)
         step_rows[step_name].reason = reason
         db.commit()
         raise DeploymentError(step_name, reason)

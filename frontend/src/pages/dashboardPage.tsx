@@ -1,4 +1,14 @@
-import { ArrowUpRight } from "lucide-react";
+import type { ReactNode } from "react";
+
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  FileCode2,
+  GitCompare,
+  Package,
+  Route,
+  Sparkles,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -8,7 +18,12 @@ import { TwinGlyph } from "../components/twinGlyph";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
-import { useBranchDiffQuery, useTestReleaseMutation } from "../hooks/queries/useReleases";
+import type { DiffAnalysis } from "../types/domain";
+import {
+  useBranchDiffQuery,
+  useDiffAnalysisQuery,
+  useTestReleaseMutation,
+} from "../hooks/queries/useReleases";
 import { useRiskReportQuery } from "../hooks/queries/useRiskReport";
 import { useProjectContext } from "../hooks/useProjectContext";
 import { cn } from "../lib/utils";
@@ -62,6 +77,132 @@ function ComparisonPane({
   );
 }
 
+function AnalysisPill({
+  icon,
+  label,
+  items,
+  variant = "default",
+}: {
+  icon: ReactNode;
+  label: string;
+  items: string[];
+  variant?: "default" | "warn";
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <div
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wider",
+          variant === "warn"
+            ? "bg-review/10 text-review"
+            : "bg-primary/10 text-primary",
+        )}
+      >
+        {icon}
+        {label}
+        <span className="ml-0.5 rounded bg-background/60 px-1 font-mono text-[10px]">
+          {items.length}
+        </span>
+      </div>
+      <ul className="space-y-1 pl-1">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm leading-6">
+            <span
+              className={cn(
+                "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
+                variant === "warn" ? "bg-review" : "bg-primary/50",
+              )}
+            />
+            <span className={variant === "warn" ? "text-foreground" : "text-muted-foreground"}>
+              {item}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DiffAnalysisCard({ analysis }: { analysis: DiffAnalysis }) {
+  const hasDetailedContent =
+    analysis.new_endpoints.length > 0 ||
+    analysis.removed_endpoints.length > 0 ||
+    analysis.new_dependencies.length > 0 ||
+    analysis.removed_dependencies.length > 0 ||
+    analysis.new_pages.length > 0 ||
+    analysis.breaking_changes.length > 0 ||
+    analysis.risk_flags.length > 0;
+
+  if (!hasDetailedContent && !analysis.summary) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-6 py-3">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          AI Change Analysis
+        </p>
+      </div>
+
+      <div className="grid gap-5 p-6">
+        {analysis.summary ? (
+          <p className="text-sm leading-relaxed text-muted-foreground">{analysis.summary}</p>
+        ) : null}
+
+        {hasDetailedContent ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AnalysisPill
+              icon={<Route className="h-3 w-3" />}
+              label="New endpoints"
+              items={analysis.new_endpoints}
+            />
+            <AnalysisPill
+              icon={<Route className="h-3 w-3" />}
+              label="Removed endpoints"
+              items={analysis.removed_endpoints}
+              variant="warn"
+            />
+            <AnalysisPill
+              icon={<Package className="h-3 w-3" />}
+              label="New dependencies"
+              items={analysis.new_dependencies}
+            />
+            <AnalysisPill
+              icon={<Package className="h-3 w-3" />}
+              label="Removed dependencies"
+              items={analysis.removed_dependencies}
+              variant="warn"
+            />
+            <AnalysisPill
+              icon={<FileCode2 className="h-3 w-3" />}
+              label="New pages"
+              items={analysis.new_pages}
+            />
+          </div>
+        ) : null}
+
+        {(analysis.breaking_changes.length > 0 || analysis.risk_flags.length > 0) ? (
+          <div className="grid gap-4 rounded-lg border border-review/20 bg-review/[0.03] p-4">
+            <AnalysisPill
+              icon={<AlertTriangle className="h-3 w-3" />}
+              label="Breaking changes"
+              items={analysis.breaking_changes}
+              variant="warn"
+            />
+            <AnalysisPill
+              icon={<AlertTriangle className="h-3 w-3" />}
+              label="Review flags"
+              items={analysis.risk_flags}
+              variant="warn"
+            />
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
 export function DashboardPage() {
   const { project, latestRelease } = useProjectContext();
   const navigate = useNavigate();
@@ -70,6 +211,7 @@ export function DashboardPage() {
 
   const riskReportQuery = useRiskReportQuery(latestRelease.id, isActivelyTesting);
   const branchDiffQuery = useBranchDiffQuery(latestRelease.id);
+  const diffAnalysisQuery = useDiffAnalysisQuery(latestRelease.id);
   const testMutation = useTestReleaseMutation(project.id);
 
   const canTest = TESTABLE_STATUSES.has(latestRelease.status) && !testMutation.isPending;
@@ -79,8 +221,6 @@ export function DashboardPage() {
     testMutation.mutate(latestRelease.id, {
       onSuccess: () => {
         toast.success("Release test started");
-        // The deployment is what's actually happening right now — send the user
-        // there to watch it live instead of leaving them on an empty risk report.
         navigate("deployment");
       },
     });
@@ -121,13 +261,40 @@ export function DashboardPage() {
         />
       </div>
 
-      <BranchDiffCard
-        diff={branchDiffQuery.data}
-        isLoading={branchDiffQuery.isLoading}
-        isError={branchDiffQuery.isError}
-        productionBranch={project.production_branch}
-        releaseBranch={latestRelease.branch}
-      />
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <BranchDiffCard
+            diff={branchDiffQuery.data}
+            isLoading={branchDiffQuery.isLoading}
+            isError={branchDiffQuery.isError}
+            productionBranch={project.production_branch}
+            releaseBranch={latestRelease.branch}
+          />
+        </div>
+        <div className="lg:col-span-2">
+          {diffAnalysisQuery.isLoading ? (
+            <Card className="grid gap-3 p-6">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/5" />
+            </Card>
+          ) : diffAnalysisQuery.data ? (
+            <DiffAnalysisCard analysis={diffAnalysisQuery.data} />
+          ) : (
+            <Card className="flex items-start gap-3 p-6">
+              <GitCompare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                AI analysis couldn&rsquo;t load for this release. Check the Deployment tab or try
+                again.
+              </p>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {riskReportQuery.isLoading ? (
         <Card className="grid gap-4 p-6">

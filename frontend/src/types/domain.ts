@@ -74,6 +74,19 @@ export type Deployment = {
   step: string;
   status: DeploymentStatus;
   reason: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
+export type DiffAnalysis = {
+  summary: string;
+  new_endpoints: string[];
+  removed_endpoints: string[];
+  new_dependencies: string[];
+  removed_dependencies: string[];
+  new_pages: string[];
+  breaking_changes: string[];
+  risk_flags: string[];
 };
 
 export type WorkflowStep = {

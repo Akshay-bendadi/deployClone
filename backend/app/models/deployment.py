@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, String
+from sqlalchemy import DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,8 +22,8 @@ class Deployment(Base, IdMixin, CreatedAtMixin):
     status: Mapped[DeploymentStatus] = mapped_column(
         Enum(DeploymentStatus, name="deployment_status"), default=DeploymentStatus.PENDING
     )
-    # Set only on failure — the human-readable reason (e.g. "never responded after 30s"),
-    # previously only ever reached a server log and was invisible to the user.
     reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     environment: Mapped["Environment"] = relationship(back_populates="deployments")
