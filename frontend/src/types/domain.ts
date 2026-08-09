@@ -35,6 +35,7 @@ export type Project = {
   env_vars: EnvVar[];
   build_command: string | null;
   start_command: string | null;
+  latest_release_status: ReleaseStatus | null;
 };
 
 export type Release = {
@@ -53,6 +54,20 @@ export type Environment = {
   kind: EnvironmentKind;
   api_url: string;
   candidate_torn_down: boolean;
+};
+
+export type BranchDiffFile = {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+};
+
+export type BranchDiff = {
+  ahead_by: number;
+  behind_by: number;
+  total_commits: number;
+  files: BranchDiffFile[];
 };
 
 export type Deployment = {

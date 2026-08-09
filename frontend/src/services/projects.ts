@@ -34,3 +34,18 @@ export function updateProject(projectId: string, payload: UpdateProjectPayload) 
 export function deleteProject(projectId: string) {
   return api.delete<void>(`/api/v1/projects/${projectId}`).then((res) => res.data);
 }
+
+export function listRepositoryBranches(repository: string, githubToken?: string) {
+  return api
+    .post<{ branches: string[] }>("/api/v1/projects/branches", {
+      repository,
+      github_token: githubToken || undefined,
+    })
+    .then((res) => res.data.branches);
+}
+
+export function listProjectBranches(projectId: string) {
+  return api
+    .get<{ branches: string[] }>(`/api/v1/projects/${projectId}/branches`)
+    .then((res) => res.data.branches);
+}

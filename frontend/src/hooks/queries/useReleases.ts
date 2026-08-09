@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "../../lib/queryKeys";
 import type { CreateReleasePayload } from "../../services/releases";
-import { createRelease, listReleases, triggerTestRelease } from "../../services/releases";
+import {
+  createRelease,
+  getBranchDiff,
+  listReleases,
+  triggerTestRelease,
+} from "../../services/releases";
 
 const ACTIVE_POLL_MS = 2000;
 
@@ -32,5 +37,13 @@ export function useTestReleaseMutation(projectId: string) {
   return useMutation({
     mutationFn: (releaseId: string) => triggerTestRelease(releaseId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.releases(projectId) }),
+  });
+}
+
+export function useBranchDiffQuery(releaseId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.branchDiff(releaseId ?? ""),
+    queryFn: () => getBranchDiff(releaseId!),
+    enabled: !!releaseId,
   });
 }

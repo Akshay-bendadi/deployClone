@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { Comparison, Release, RiskReport } from "../types/domain";
+import type { BranchDiff, Comparison, Release, RiskReport } from "../types/domain";
 
 export type CreateReleasePayload = {
   version: string;
@@ -30,4 +30,8 @@ export function getComparisons(releaseId: string) {
 
 export function triggerTestRelease(releaseId: string) {
   return api.post<Release>(`/api/v1/releases/${releaseId}/test`).then((res) => res.data);
+}
+
+export function getBranchDiff(releaseId: string) {
+  return api.get<BranchDiff>(`/api/v1/releases/${releaseId}/branch-diff`).then((res) => res.data);
 }
