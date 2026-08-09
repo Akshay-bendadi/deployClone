@@ -7,16 +7,31 @@ const baseOrigin = new URL(baseURL).origin;
 
 const AUTH_TOKEN_STORAGE_KEY = "deployclone_token";
 
+// localStorage writes don't trigger React re-renders on their own. AuthProvider reads
+// the token to decide whether /auth/me should even run, so without this pub/sub, a
+// setAuthToken() right before a mutation's onSuccess would go unnoticed until some
+// unrelated re-render happened to occur — the query would stay disabled and the app
+// would look "logged in" (token present) but never actually fetch the user.
+type Listener = () => void;
+const tokenListeners = new Set<Listener>();
+
+export function subscribeAuthToken(listener: Listener): () => void {
+  tokenListeners.add(listener);
+  return () => tokenListeners.delete(listener);
+}
+
 export function getAuthToken(): string | null {
   return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
 }
 
 export function setAuthToken(token: string): void {
   window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  tokenListeners.forEach((listener) => listener());
 }
 
 export function clearAuthToken(): void {
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  tokenListeners.forEach((listener) => listener());
 }
 
 type ApiError = {

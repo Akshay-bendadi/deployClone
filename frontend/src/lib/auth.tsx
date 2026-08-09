@@ -2,7 +2,7 @@ import { type ReactNode, createContext, useContext, useMemo } from "react";
 
 import { useCurrentUserQuery, useLogout } from "../hooks/queries/useAuth";
 import type { CurrentUser } from "../services/auth";
-import { getAuthToken } from "./api";
+import { useAuthToken } from "./useAuthToken";
 
 type AuthContextValue = {
   user: CurrentUser | null;
@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // where `enabled` first flips true, the fetch hasn't been kicked off yet, so
   // isFetching is briefly false and this would read as "not loading, not authenticated",
   // bouncing straight back to /login before /auth/me ever gets called.
-  const hasToken = !!getAuthToken();
+  const hasToken = !!useAuthToken();
   const value = useMemo<AuthContextValue>(
     () => ({
       user: currentUserQuery.data ?? null,
