@@ -8,6 +8,7 @@ import { DeploymentPage } from "../pages/deploymentPage";
 import { EvidencePage } from "../pages/evidencePage";
 import { LandingPage } from "../pages/landingPage";
 import { LoginPage } from "../pages/loginPage";
+import { NotFoundPage } from "../pages/notFoundPage";
 import { ProjectFormPage } from "../pages/projectFormPage";
 import { ProjectsListPage } from "../pages/projectsListPage";
 import { SignupPage } from "../pages/signupPage";
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);
