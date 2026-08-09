@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import type { SubmitHandler } from "react-hook-form";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -39,28 +40,61 @@ const projectFormSchema = z.object({
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
+const STEPS = [
+  { n: 1 as const, label: "Connect repository" },
+  { n: 2 as const, label: "Configure" },
+];
+
+// A small hover/focus-triggered tooltip so field explanations don't have to sit
+// permanently on the page as paragraph text — a plain <span> (not a <button>) so
+// it nests validly inside the native <label> each field wraps it in.
+function FieldHint({ children }: { children: ReactNode }) {
+  return (
+    <span
+      tabIndex={0}
+      className="group/hint relative inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground/60 outline-none transition hover:text-foreground focus-visible:text-foreground"
+    >
+      <Info className="h-3.5 w-3.5" />
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-md border border-border bg-popover px-3 py-2 text-xs font-normal normal-case leading-5 tracking-normal text-popover-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/hint:opacity-100 group-focus/hint:opacity-100">
+        {children}
+      </span>
+    </span>
+  );
+}
+
+function FieldLabel({ children, hint }: { children: ReactNode; hint?: ReactNode }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {children}
+      {hint ? <FieldHint>{hint}</FieldHint> : null}
+    </span>
+  );
+}
+
+function StepNode({ state, n }: { state: "pending" | "current" | "done"; n: number }) {
+  return (
+    <div
+      className={cn(
+        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+        state === "current" && "bg-primary text-primary-foreground",
+        state === "done" && "bg-safe text-safe-foreground",
+        state === "pending" &&
+          "border-2 border-dashed border-border bg-transparent text-muted-foreground",
+      )}
+    >
+      {state === "done" ? <Check className="h-3.5 w-3.5" /> : n}
+    </div>
+  );
+}
+
 function StepIndicator({ step }: { step: 1 | 2 }) {
   return (
     <div className="flex items-center gap-3">
-      {[
-        { n: 1, label: "Connect repository" },
-        { n: 2, label: "Configure" },
-      ].map((s, i) => (
+      {STEPS.map((s, i) => (
         <div key={s.n} className="flex items-center gap-3">
           {i > 0 ? <div className="h-px w-8 bg-border" /> : null}
           <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                step === s.n
-                  ? "bg-primary text-primary-foreground"
-                  : step > s.n
-                    ? "bg-safe/15 text-safe"
-                    : "bg-muted text-muted-foreground",
-              )}
-            >
-              {step > s.n ? <CheckCircle2 className="h-4 w-4" /> : s.n}
-            </div>
+            <StepNode n={s.n} state={step === s.n ? "current" : step > s.n ? "done" : "pending"} />
             <span
               className={cn(
                 "text-sm font-medium",
@@ -113,13 +147,9 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
   // mode: fetched explicitly when the user confirms step 1, not on every keystroke.
   const projectBranchesQuery = useProjectBranchesQuery(project?.id);
   const repositoryBranchesMutation = useRepositoryBranchesMutation();
-  const [branches, setBranches] = useState<string[]>([]);
+  const [fetchedBranches, setBranches] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (projectBranchesQuery.data) {
-      setBranches(projectBranchesQuery.data);
-    }
-  }, [projectBranchesQuery.data]);
+  const branches = projectBranchesQuery.data ?? fetchedBranches;
 
   function fetchBranches(onDone?: (ok: boolean) => void) {
     const repository = form.getValues("repository");
@@ -177,12 +207,13 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
           <div>
             <p className="text-sm font-medium">Which repository are you testing?</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              deployClone reads its branches from GitHub so you can pick one instead of typing it
-              &mdash; the next step unlocks once we can see the repository.
+              deployClone reads branches from GitHub, so pick one instead of typing it.
             </p>
           </div>
           <Label className="grid gap-2">
-            GitHub repository
+            <span>
+              GitHub repository <span className="text-block">*</span>
+            </span>
             <Input
               {...form.register("repository")}
               placeholder="github.com/your-org/your-repo"
@@ -193,16 +224,14 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
             ) : null}
           </Label>
           <Label className="grid gap-2">
-            GitHub token
+            <FieldLabel hint="Personal access token with repo read access. Only needed for private repos — public repos work without one. Encrypted at rest.">
+              GitHub token <span className="font-normal text-muted-foreground">(optional)</span>
+            </FieldLabel>
             <Input
               {...form.register("github_token")}
               type="password"
               placeholder="Required for private repos only"
             />
-            <span className="text-xs text-muted-foreground">
-              A personal access token with repo read access. Only needed if the repository above is
-              private &mdash; public repos work without one. Encrypted at rest.
-            </span>
           </Label>
           {branchesUnavailable ? (
             <p className="text-sm text-block">
@@ -215,22 +244,16 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
             onClick={handleContinue}
             disabled={repositoryBranchesMutation.isPending}
           >
-            {repositoryBranchesMutation.isPending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Connecting...
-              </span>
-            ) : (
-              "Continue"
-            )}
+            {repositoryBranchesMutation.isPending ? "Connecting..." : "Continue"}
           </Button>
         </div>
       ) : (
         <>
           <div className="grid gap-4">
             {!isEditMode ? (
-              <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-4 py-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-safe" />
+                  <Check className="h-4 w-4 text-safe" />
                   <span className="font-medium">{form.getValues("repository")}</span>
                 </div>
                 <button
@@ -243,7 +266,9 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
               </div>
             ) : null}
             <Label className="grid gap-2">
-              Project name
+              <span>
+                Project name <span className="text-block">*</span>
+              </span>
               <Input {...form.register("name")} placeholder="e.g. Payments API" />
               {form.formState.errors.name ? (
                 <span className="text-xs text-block">{form.formState.errors.name.message}</span>
@@ -252,7 +277,9 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
             {isEditMode ? (
               <>
                 <Label className="grid gap-2">
-                  GitHub repository
+                  <span>
+                    GitHub repository <span className="text-block">*</span>
+                  </span>
                   <Input
                     {...form.register("repository", { onBlur: () => fetchBranches() })}
                     placeholder="github.com/your-org/your-repo"
@@ -264,20 +291,22 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
                   ) : null}
                 </Label>
                 <Label className="grid gap-2">
-                  GitHub token
+                  <FieldLabel hint="Only needed if the repository is private. Encrypted at rest.">
+                    GitHub token{" "}
+                    <span className="font-normal text-muted-foreground">(optional)</span>
+                  </FieldLabel>
                   <Input
                     {...form.register("github_token", { onBlur: () => fetchBranches() })}
                     type="password"
                     placeholder="Leave blank to keep current"
                   />
-                  <span className="text-xs text-muted-foreground">
-                    Only needed if the repository is private. Encrypted at rest.
-                  </span>
                 </Label>
               </>
             ) : null}
             <Label className="grid gap-2">
-              Runtime
+              <FieldLabel hint="What the twin service runs on. Must match how the repository is actually built.">
+                Runtime <span className="text-block">*</span>
+              </FieldLabel>
               <Controller
                 control={form.control}
                 name="zerops_runtime"
@@ -296,9 +325,6 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
                   </Select>
                 )}
               />
-              <span className="text-xs text-muted-foreground">
-                What the twin service runs on. Must match how the repository is actually built.
-              </span>
               {form.formState.errors.zerops_runtime ? (
                 <span className="text-xs text-block">
                   {form.formState.errors.zerops_runtime.message}
@@ -306,22 +332,25 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
               ) : null}
             </Label>
             <Label className="grid gap-2">
-              Build command
+              <FieldLabel
+                hint={
+                  <>
+                    Runs after dependencies install. Just the app-specific step, e.g.{" "}
+                    <code>npm run build</code> — not{" "}
+                    <code>npm install &amp;&amp; npm run build</code>. Leave blank if nothing needs
+                    building.
+                  </>
+                }
+              >
+                Build command <span className="font-normal text-muted-foreground">(optional)</span>
+              </FieldLabel>
               <Input {...form.register("build_command")} placeholder="npm run build" />
-              <span className="text-xs text-muted-foreground">
-                Runs after dependencies are installed automatically for the runtime above. Just the
-                app-specific step &mdash; e.g. <code>npm run build</code>, not{" "}
-                <code>npm install &amp;&amp; npm run build</code>. Leave blank if nothing needs
-                building.
-              </span>
             </Label>
             <Label className="grid gap-2">
-              Start command
+              <FieldLabel hint="How the twin boots up. deployClone generates the twin's zerops.yaml from this and the runtime above — your repository doesn't need its own.">
+                Start command <span className="text-block">*</span>
+              </FieldLabel>
               <Input {...form.register("start_command")} placeholder="npm start" />
-              <span className="text-xs text-muted-foreground">
-                How the twin boots up. deployClone generates the twin&rsquo;s zerops.yaml from this
-                and the runtime above &mdash; your repository doesn&rsquo;t need its own.
-              </span>
               {form.formState.errors.start_command ? (
                 <span className="text-xs text-block">
                   {form.formState.errors.start_command.message}
@@ -337,11 +366,10 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
               Production (already deployed)
             </p>
             <Label className="grid gap-2">
-              Production URL
+              <FieldLabel hint="The live API deployClone compares each release's twin against.">
+                Production URL <span className="text-block">*</span>
+              </FieldLabel>
               <Input {...form.register("production_url")} placeholder="https://api.example.com" />
-              <span className="text-xs text-muted-foreground">
-                The live API deployClone compares each release&rsquo;s twin against.
-              </span>
               {form.formState.errors.production_url ? (
                 <span className="text-xs text-block">
                   {form.formState.errors.production_url.message}
@@ -349,7 +377,15 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
               ) : null}
             </Label>
             <Label className="grid gap-2">
-              Production branch
+              <FieldLabel
+                hint={
+                  branchesUnavailable
+                    ? undefined
+                    : "deployClone resolves this to production's current commit automatically."
+                }
+              >
+                Production branch <span className="text-block">*</span>
+              </FieldLabel>
               {branchesUnavailable ? (
                 <Input
                   {...form.register("production_branch")}
@@ -388,11 +424,11 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
                   )}
                 />
               )}
-              <span className="text-xs text-muted-foreground">
-                {branchesUnavailable
-                  ? "Couldn't fetch branches from GitHub — type the branch name directly."
-                  : "deployClone resolves this to production's current commit automatically."}
-              </span>
+              {branchesUnavailable ? (
+                <span className="text-xs text-muted-foreground">
+                  Couldn&rsquo;t fetch branches from GitHub — type the branch name directly.
+                </span>
+              ) : null}
               {form.formState.errors.production_branch ? (
                 <span className="text-xs text-block">
                   {form.formState.errors.production_branch.message}
@@ -404,15 +440,13 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
           <Separator />
 
           <div className="grid gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Twin environment variables
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Twin environment variables
+              <FieldHint>
                 Synthetic config injected into the twin only (never copied from production) — e.g. a
                 twin database URL. Encrypted at rest.
-              </p>
-            </div>
+              </FieldHint>
+            </p>
 
             {envVarFields.fields.map((field, index) => (
               <div key={field.id} className="flex items-center gap-2">

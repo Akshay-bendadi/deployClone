@@ -31,7 +31,9 @@ export function LandingFeatures() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-24">
       <Reveal className="mx-auto max-w-xl text-center">
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">What gets compared</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          What gets compared
+        </p>
         <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
           Evidence, not vibes.
         </h2>
@@ -46,14 +48,20 @@ export function LandingFeatures() {
               </span>
 
               <div>
-                <h3 className="font-display text-base font-semibold tracking-tight sm:text-lg">{signal.title}</h3>
-                <p className="mt-1.5 max-w-md text-sm leading-6 text-muted-foreground">{signal.body}</p>
+                <h3 className="font-display text-base font-semibold tracking-tight sm:text-lg">
+                  {signal.title}
+                </h3>
+                <p className="mt-1.5 max-w-md text-sm leading-6 text-muted-foreground">
+                  {signal.body}
+                </p>
               </div>
 
               <div className="flex shrink-0 items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 font-mono text-[11px]">
                 <span className="text-muted-foreground">{signal.prod}</span>
                 <span className="text-muted-foreground/50">&rarr;</span>
-                <span className={signal.match ? "text-safe" : "font-semibold text-block"}>{signal.twin}</span>
+                <span className={signal.match ? "text-safe" : "font-semibold text-block"}>
+                  {signal.twin}
+                </span>
               </div>
             </div>
           </PopItem>
@@ -62,8 +70,8 @@ export function LandingFeatures() {
 
       <Reveal delay={0.1}>
         <p className="mx-auto mt-8 max-w-lg text-center font-mono text-[11px] leading-5 text-muted-foreground">
-          These three signals feed one fixed scoring engine. Same input, same verdict, every time &mdash; no model in
-          the loop until it&rsquo;s time to explain the result.
+          These three signals feed one fixed scoring engine. Same input, same verdict, every time
+          &mdash; no model in the loop until it&rsquo;s time to explain the result.
         </p>
       </Reveal>
     </section>

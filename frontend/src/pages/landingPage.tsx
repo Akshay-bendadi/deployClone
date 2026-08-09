@@ -1,6 +1,5 @@
-import { Navigate, useNavigate } from "react-router-dom";
-
 import { ArrowRight } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import { HowItWorks } from "../components/marketing/howItWorks";
 import { LandingBackground } from "../components/marketing/landingBackground";
@@ -59,9 +58,9 @@ export function LandingPage() {
 
           <Reveal immediate delay={0.16}>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
-              deployClone stands a twin of your candidate commit next to production, replays your real request
-              workflows against both, and turns the diff into a verdict &mdash; before your users find the
-              regression for you.
+              deployClone stands a twin of your release commit next to production, replays your real
+              request workflows against both, and turns the diff into a verdict &mdash; before your
+              users find the regression for you.
             </p>
           </Reveal>
 
@@ -71,7 +70,12 @@ export function LandingPage() {
                 Get started
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button size="lg" variant="outline" className="h-11 px-6" onClick={() => navigate("/login")}>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 px-6"
+                onClick={() => navigate("/login")}
+              >
                 Sign in
               </Button>
             </div>

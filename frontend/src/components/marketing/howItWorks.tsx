@@ -12,7 +12,7 @@ const STEPS = [
     step: "02",
     label: "Run",
     title: "Deploy the twin, run it twice",
-    body: "Zerops builds a live environment from the candidate commit. The workflow runs against it and against production, side by side.",
+    body: "Zerops builds a live twin from the release commit. The workflow runs against it and against production, side by side.",
   },
   {
     step: "03",
@@ -25,13 +25,18 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section className="relative overflow-hidden border-t border-border py-24">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 opacity-[0.16] dark:opacity-[0.22]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 opacity-[0.16] dark:opacity-[0.22]"
+      >
         <TwinNetworkScene />
       </div>
 
       <div className="mx-auto max-w-5xl px-6">
         <Reveal className="mx-auto max-w-xl text-center">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">How it runs</p>
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            How it runs
+          </p>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
             Three steps, every release.
           </h2>
@@ -52,7 +57,9 @@ export function HowItWorks() {
                   {item.label}
                 </span>
               </div>
-              <h3 className="mt-4 font-display text-xl font-semibold tracking-tight">{item.title}</h3>
+              <h3 className="mt-4 font-display text-xl font-semibold tracking-tight">
+                {item.title}
+              </h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
             </PopItem>
           ))}

@@ -1,4 +1,5 @@
 import { ComparisonCard } from "../components/evidence/comparisonCard";
+import { PageHeader } from "../components/layout/pageHeader";
 import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { useComparisonsQuery } from "../hooks/queries/useComparisons";
@@ -13,10 +14,11 @@ export function EvidencePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold tracking-[-0.02em]">Evidence</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Regression evidence per category.</p>
-      </div>
+      <PageHeader
+        eyebrow="Evidence"
+        title="Evidence"
+        description="Regression evidence per category."
+      />
 
       {comparisonsQuery.isLoading ? (
         <div className="grid gap-4">

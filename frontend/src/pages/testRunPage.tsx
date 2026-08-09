@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
+import { PageHeader } from "../components/layout/pageHeader";
 import { WorkflowResultRow } from "../components/testRun/workflowResultRow";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -30,12 +31,11 @@ export function TestRunPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold tracking-[-0.02em]">Test Run</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Each workflow run against production and the {latestRelease.version} twin.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Test Run"
+        title="Test Run"
+        description={`Each workflow run against production and the ${latestRelease.version} twin.`}
+      />
 
       {workflowsQuery.isLoading ? (
         <div className="grid gap-3">

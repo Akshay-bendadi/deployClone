@@ -13,7 +13,9 @@ export function LandingBackground() {
       />
       <div
         className="absolute -top-24 left-1/2 h-[420px] w-[640px] -translate-x-1/2 rounded-full opacity-60 blur-[100px]"
-        style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.22), transparent 65%)" }}
+        style={{
+          background: "radial-gradient(circle, hsl(var(--primary) / 0.22), transparent 65%)",
+        }}
       />
       <div
         className="absolute right-0 top-40 h-[340px] w-[420px] rounded-full opacity-50 blur-[90px]"

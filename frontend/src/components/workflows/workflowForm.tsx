@@ -97,7 +97,9 @@ export function WorkflowForm({
   return (
     <form className="grid gap-5" onSubmit={form.handleSubmit(onSubmit)}>
       <Label className="grid gap-2">
-        Workflow name
+        <span>
+          Workflow name <span className="text-block">*</span>
+        </span>
         <Input {...form.register("name")} placeholder="e.g. Create and fetch order" />
         {form.formState.errors.name ? (
           <span className="text-xs text-block">{form.formState.errors.name.message}</span>
@@ -126,10 +128,12 @@ export function WorkflowForm({
                   </button>
                 ) : null}
               </div>
-              <Input
-                {...form.register(`steps.${index}.name`)}
-                placeholder="Step name, e.g. Create order"
-              />
+              <Label className="grid gap-2">
+                <span>
+                  Step name <span className="text-block">*</span>
+                </span>
+                <Input {...form.register(`steps.${index}.name`)} placeholder="e.g. Create order" />
+              </Label>
               <div className="flex gap-2">
                 <Controller
                   control={form.control}
@@ -149,14 +153,19 @@ export function WorkflowForm({
                     </Select>
                   )}
                 />
-                <Input {...form.register(`steps.${index}.path`)} placeholder="/api/orders" />
+                <div className="grid flex-1 gap-1">
+                  <Input {...form.register(`steps.${index}.path`)} placeholder="/api/orders" />
+                </div>
               </div>
               {METHODS_WITH_BODY.has(method) ? (
-                <Textarea
-                  {...form.register(`steps.${index}.body`)}
-                  placeholder={'{\n  "key": "value"\n}'}
-                  className="min-h-[90px] font-mono text-xs"
-                />
+                <Label className="grid gap-2">
+                  Request body <span className="font-normal text-muted-foreground">(optional)</span>
+                  <Textarea
+                    {...form.register(`steps.${index}.body`)}
+                    placeholder={'{\n  "key": "value"\n}'}
+                    className="min-h-[90px] font-mono text-xs"
+                  />
+                </Label>
               ) : null}
               {form.formState.errors.steps?.[index]?.name ? (
                 <span className="text-xs text-block">

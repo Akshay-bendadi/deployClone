@@ -38,7 +38,7 @@ export function ProjectFormPage() {
             : "Point deployClone at a repository you already have running in production."}
         </p>
       </div>
-      <Card className="p-6">
+      <Card className="p-6 sm:p-8">
         <ProjectForm project={projectQuery.data} onSuccess={() => navigate("/projects")} />
       </Card>
     </div>

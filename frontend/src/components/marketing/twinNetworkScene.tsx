@@ -1,7 +1,8 @@
 import { useMemo, useRef } from "react";
 
-import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+
+import { Canvas, useFrame } from "@react-three/fiber";
 
 const BLUE = "#3b6bf0";
 const GREEN = "#22c55e";
@@ -74,7 +75,13 @@ function Network() {
       </mesh>
       <mesh position={twinPos}>
         <sphereGeometry args={[0.16, 32, 32]} />
-        <meshStandardMaterial color={BLUE} emissive={BLUE} emissiveIntensity={0.4} transparent opacity={0.7} />
+        <meshStandardMaterial
+          color={BLUE}
+          emissive={BLUE}
+          emissiveIntensity={0.4}
+          transparent
+          opacity={0.7}
+        />
       </mesh>
       <mesh position={comparatorPos}>
         <icosahedronGeometry args={[0.24, 0]} />

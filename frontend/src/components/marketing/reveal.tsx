@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { motion, type Variants } from "motion/react";
+import { type Variants, motion } from "motion/react";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const VIEWPORT = { once: true, margin: "-80px" } as const;
@@ -37,7 +37,13 @@ const containerVariants: Variants = {
 
 export function StaggerGroup({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <motion.div className={className} variants={containerVariants} initial="hidden" whileInView="visible" viewport={VIEWPORT}>
+    <motion.div
+      className={className}
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={VIEWPORT}
+    >
       {children}
     </motion.div>
   );

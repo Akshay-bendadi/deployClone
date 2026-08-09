@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Plus } from "lucide-react";
 
+import { PageHeader } from "../components/layout/pageHeader";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import {
@@ -87,29 +88,27 @@ export function WorkflowsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-[-0.02em]">Workflows</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Real HTTP sequences run against production and the twin on every test &mdash; this is
-            what actually generates Test Run and Evidence results.
-          </p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add workflow
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>New workflow</DialogTitle>
-            </DialogHeader>
-            <WorkflowForm projectId={project.id} onSuccess={() => setCreateOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        eyebrow="Workflows"
+        title="Workflows"
+        description="Real HTTP sequences run against production and the twin on every test — this is what actually generates Test Run and Evidence results."
+        actions={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add workflow
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>New workflow</DialogTitle>
+              </DialogHeader>
+              <WorkflowForm projectId={project.id} onSuccess={() => setCreateOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {workflowsQuery.isLoading ? (
         <div className="grid gap-3">
