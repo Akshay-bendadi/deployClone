@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 
-export function TeardownCountdown({ teardownAt }: { teardownAt: string }) {
+export function TeardownCountdown({ teardownAt, onExpired }: { teardownAt: string; onExpired?: () => void }) {
   const [remaining, setRemaining] = useState(() => calcRemaining(teardownAt));
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setRemaining(calcRemaining(teardownAt));
+      const r = calcRemaining(teardownAt);
+      setRemaining(r);
+      if (r <= 0) {
+        clearInterval(interval);
+        onExpired?.();
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [teardownAt]);
+  }, [teardownAt, onExpired]);
 
   if (remaining <= 0) return <span className="text-xs text-destructive font-medium">Auto-deleting now...</span>;
 
