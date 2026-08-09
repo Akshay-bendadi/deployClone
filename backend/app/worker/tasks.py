@@ -1,6 +1,5 @@
-"""Worker task handlers (plan.txt §11, §16, §19-29): deploy -> test -> compare -> risk -> explain."""
-
 import logging
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy.orm import Session
@@ -288,5 +287,24 @@ def _run_release_test(db: Session, release: Release) -> None:
 
     db.add(RiskReport(release_id=release.id, risk_score=risk_score, verdict=verdict, ai_explanation=ai_explanation))
     release.status = _VERDICT_TO_RELEASE_STATUS[verdict]
+
+    from app.worker.queue import AUTO_TEARDOWN_DELAY, enqueue_auto_teardown
+
+    teardown_at = datetime.now(timezone.utc) + AUTO_TEARDOWN_DELAY
+    candidate.auto_teardown_at = teardown_at
     db.commit()
-    logger.info("Release %s finished testing: %s (risk score %d)", release.id, verdict.value, risk_score)
+
+    enqueue_auto_teardown(str(release.id))
+    logger.info("Release %s finished testing: %s (risk score %d), auto-teardown at %s", release.id, verdict.value, risk_score, teardown_at)
+
+
+def auto_teardown_twin(release_id: str) -> None:
+    db = SessionLocal()
+    try:
+        release = db.get(Release, release_id)
+        if release is None:
+            return
+        _cleanup_candidate(db, release)
+        logger.info("Auto-teardown completed for release %s", release_id)
+    finally:
+        db.close()

@@ -50,6 +50,7 @@ export type Environment = {
   kind: EnvironmentKind;
   api_url: string;
   candidate_torn_down: boolean;
+  auto_teardown_at: string | null;
 };
 
 export type BranchDiffFile = {
