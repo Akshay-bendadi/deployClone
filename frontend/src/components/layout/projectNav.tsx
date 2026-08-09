@@ -5,6 +5,7 @@ import { cn } from "../../lib/utils";
 const PROJECT_NAV_ITEMS = [
   { to: "", label: "Dashboard" },
   { to: "deployment", label: "Deployment" },
+  { to: "workflows", label: "Workflows" },
   { to: "test-run", label: "Test Run" },
   { to: "evidence", label: "Evidence" },
 ];

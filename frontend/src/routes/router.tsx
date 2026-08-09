@@ -12,6 +12,7 @@ import { ProjectFormPage } from "../pages/projectFormPage";
 import { ProjectsListPage } from "../pages/projectsListPage";
 import { SignupPage } from "../pages/signupPage";
 import { TestRunPage } from "../pages/testRunPage";
+import { WorkflowsPage } from "../pages/workflowsPage";
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <DashboardPage /> },
               { path: "deployment", element: <DeploymentPage /> },
+              { path: "workflows", element: <WorkflowsPage /> },
               { path: "test-run", element: <TestRunPage /> },
               { path: "evidence", element: <EvidencePage /> },
             ],
