@@ -197,18 +197,33 @@ def get_diff_analysis(release_id: uuid.UUID, db: SessionDep, current_user: Curre
             "breaking_changes": [],
             "risk_flags": [],
         }
-    analysis = analyze_diff(diff)
-    if analysis is None:
+    result = analyze_diff(diff)
+    empty = {
+        "new_endpoints": [],
+        "removed_endpoints": [],
+        "new_dependencies": [],
+        "removed_dependencies": [],
+        "new_pages": [],
+        "breaking_changes": [],
+        "risk_flags": [],
+    }
+    if result.data:
+        return result.data
+    if result.no_key:
         return {
             "summary": f"This release changes {len(diff.files)} file(s) across {diff.total_commits} commit(s). "
-            "AI-powered analysis of new endpoints, dependencies, and breaking changes is available "
-            "when NVIDIA_API_KEY is configured.",
-            "new_endpoints": [],
-            "removed_endpoints": [],
-            "new_dependencies": [],
-            "removed_dependencies": [],
-            "new_pages": [],
-            "breaking_changes": [],
-            "risk_flags": [],
+            "AI-powered analysis is available when NVIDIA_API_KEY is configured.",
+            **empty,
         }
-    return analysis
+    if result.error:
+        return {
+            "summary": f"This release changes {len(diff.files)} file(s) across {diff.total_commits} commit(s). "
+            f"AI analysis temporarily unavailable — retry in a moment. ({result.error})",
+            **empty,
+        }
+    return {
+        "summary": "No file changes detected between production and this release branch. "
+        "This usually means you selected the same branch as production, or the branch "
+        "has already been merged. Try selecting a different branch with actual changes.",
+        **empty,
+    }

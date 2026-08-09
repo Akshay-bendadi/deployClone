@@ -8,6 +8,7 @@ from app.db import SessionLocal
 from app.models.enums import (
     ComparisonCategory,
     EnvironmentKind,
+    RegressionSeverity,
     ReleaseStatus,
     RiskVerdict,
     TestRunStatus,
@@ -23,6 +24,8 @@ from app.models.workflow import Workflow
 from app.services.ai_explainer import generate_explanation
 from app.services.comparator import RegressionFinding, compare_functional, compare_performance
 from app.services.deployment_service import DeploymentError, run_candidate_deployment
+from app.services.diff_analyzer import analyze_diff
+from app.services.github_client import GitHubError, compare_branches
 from app.services.risk_engine import calculate_risk_score, determine_verdict
 from app.services.workflow_runner import StepExecution, run_workflow
 from app.services.zerops_client import get_zerops_client
@@ -185,8 +188,31 @@ def _reset_previous_test_data(db: Session, release: Release) -> None:
     db.commit()
 
 
+def _ai_findings(release: Release) -> list[RegressionFinding]:
+    """Runs AI diff analysis and converts breaking changes / risk flags into findings."""
+    project = release.project
+    try:
+        diff = compare_branches(
+            project.repository, project.production_commit_sha, release.commit_sha, token=project.github_token
+        )
+    except GitHubError:
+        return []
+
+    result = analyze_diff(diff)
+    if not result.data:
+        return []
+
+    findings: list[RegressionFinding] = []
+    for change in result.data.get("breaking_changes", []):
+        findings.append(RegressionFinding(RegressionSeverity.CRITICAL, f"[AI] {change}"))
+    for flag in result.data.get("risk_flags", []):
+        findings.append(RegressionFinding(RegressionSeverity.MEDIUM, f"[AI] {flag}"))
+    return findings
+
+
 def _run_release_test(db: Session, release: Release) -> None:
     _reset_previous_test_data(db, release)
+    _cleanup_candidate(db, release)
 
     production = Environment(
         release_id=release.id,
@@ -269,6 +295,21 @@ def _run_release_test(db: Session, release: Release) -> None:
                 all_findings.extend(findings)
 
     db.commit()
+
+    ai_diff_findings = _ai_findings(release)
+    if ai_diff_findings:
+        comparison = Comparison(
+            release_id=release.id,
+            category=ComparisonCategory.FUNCTIONAL,
+            production_value={"source": "ai_diff_analysis"},
+            candidate_value={"source": "ai_diff_analysis"},
+        )
+        db.add(comparison)
+        db.flush()
+        for finding in ai_diff_findings:
+            db.add(Regression(comparison_id=comparison.id, severity=finding.severity, summary=finding.summary))
+        all_findings.extend(ai_diff_findings)
+        db.commit()
 
     risk_score = calculate_risk_score(all_findings)
     verdict = determine_verdict(risk_score)

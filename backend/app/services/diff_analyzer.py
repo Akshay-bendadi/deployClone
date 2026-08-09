@@ -1,5 +1,6 @@
 import json
 import logging
+from dataclasses import dataclass
 
 import httpx
 
@@ -33,6 +34,13 @@ _SYSTEM_PROMPT = (
 )
 
 
+@dataclass
+class AnalysisResult:
+    data: dict | None = None
+    error: str | None = None
+    no_key: bool = False
+
+
 def _build_patch_context(diff: BranchDiff) -> str:
     parts = []
     total_chars = 0
@@ -46,13 +54,13 @@ def _build_patch_context(diff: BranchDiff) -> str:
     return "\n\n".join(parts)
 
 
-def analyze_diff(diff: BranchDiff) -> dict | None:
+def analyze_diff(diff: BranchDiff) -> AnalysisResult:
     settings = get_settings()
     if not settings.nvidia_api_key:
-        return None
+        return AnalysisResult(no_key=True)
 
     if not diff.files:
-        return None
+        return AnalysisResult(data=None)
 
     patch_context = _build_patch_context(diff)
     user_prompt = (
@@ -80,7 +88,7 @@ def analyze_diff(diff: BranchDiff) -> dict | None:
         )
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"].strip()
-        return json.loads(content)
+        return AnalysisResult(data=json.loads(content))
     except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
         logger.warning("Diff analysis failed: %s", exc)
-        return None
+        return AnalysisResult(error=str(exc))
