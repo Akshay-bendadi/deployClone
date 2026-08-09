@@ -3,6 +3,7 @@
 import re
 
 import httpx
+from pydantic import BaseModel
 
 from app.config import get_settings
 
@@ -38,6 +39,63 @@ def resolve_branch_commit(repository: str, branch: str, token: str | None = None
     if response.status_code >= 400:
         raise GitHubError(f"Branch {branch!r} not found in {repository} ({response.status_code})")
     return response.json()["sha"]
+
+
+def list_branches(repository: str, token: str | None = None) -> list[str]:
+    owner, repo = parse_github_repository(repository)
+    effective_token = token or get_settings().github_token
+    headers = {"Accept": "application/vnd.github+json"}
+    if effective_token:
+        headers["Authorization"] = f"Bearer {effective_token}"
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/branches"
+    response = httpx.get(url, headers=headers, params={"per_page": 100}, timeout=15.0)
+    if response.status_code >= 400:
+        raise GitHubError(f"Could not list branches for {repository} ({response.status_code})")
+    return [entry["name"] for entry in response.json()]
+
+
+class BranchDiffFile(BaseModel):
+    filename: str
+    status: str
+    additions: int
+    deletions: int
+
+
+class BranchDiff(BaseModel):
+    ahead_by: int
+    behind_by: int
+    total_commits: int
+    files: list[BranchDiffFile]
+
+
+def compare_branches(repository: str, base: str, head: str, token: str | None = None) -> BranchDiff:
+    # base = what's live in production, head = the release commit being tested.
+    owner, repo = parse_github_repository(repository)
+    effective_token = token or get_settings().github_token
+    headers = {"Accept": "application/vnd.github+json"}
+    if effective_token:
+        headers["Authorization"] = f"Bearer {effective_token}"
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/compare/{base}...{head}"
+    response = httpx.get(url, headers=headers, timeout=20.0)
+    if response.status_code >= 400:
+        raise GitHubError(f"Could not compare {base}...{head} in {repository} ({response.status_code})")
+    payload = response.json()
+    return BranchDiff(
+        ahead_by=payload.get("ahead_by", 0),
+        behind_by=payload.get("behind_by", 0),
+        total_commits=payload.get("total_commits", 0),
+        files=[
+            BranchDiffFile(
+                filename=f["filename"],
+                status=f["status"],
+                additions=f.get("additions", 0),
+                deletions=f.get("deletions", 0),
+            )
+            for f in payload.get("files", []) or []
+        ],
+    )
 
 
 def download_repo_tarball(repository: str, commit_sha: str, token: str | None = None) -> bytes:
