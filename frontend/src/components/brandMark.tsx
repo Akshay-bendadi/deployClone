@@ -1,10 +1,27 @@
 export function BrandMark() {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="relative inline-block h-6 w-6 shrink-0">
-        <span className="absolute left-0 top-0.5 h-4 w-4 rounded-[5px] border-[1.5px] border-muted-foreground/40" />
-        <span className="absolute bottom-0.5 right-0 h-4 w-4 rounded-[5px] bg-primary" />
-      </span>
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" className="shrink-0">
+        <rect
+          x="10"
+          y="2"
+          width="18"
+          height="18"
+          rx="5"
+          className="fill-none stroke-primary/50"
+          strokeWidth="1.75"
+          strokeDasharray="3 3"
+        />
+        <rect x="2" y="10" width="18" height="18" rx="5" className="fill-primary" />
+        <path
+          d="M8.5 19.5l2.5 2.5 4.5-5"
+          stroke="hsl(var(--primary-foreground))"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
       <span className="text-[0.95rem] font-semibold tracking-[-0.02em]">
         deploy<span className="text-muted-foreground">Clone</span>
       </span>
