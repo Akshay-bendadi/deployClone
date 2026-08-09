@@ -115,8 +115,8 @@ An optional AI explanation layer (NVIDIA `llama-3.1-8b-instruct`) can turn the d
 
 ```
 ┌─────────────┐       ┌─────────────┐       ┌──────────┐
-│   Frontend   │──────▶│   Backend   │──────▶│  Worker  │
-│  React/Vite  │ REST  │   FastAPI   │  RQ   │  (jobs)  │
+│   Frontend  │──────▶│   Backend   │──────▶│  Worker  │
+│  React/Vite │ REST  │   FastAPI   │  RQ   │  (jobs)  │
 └─────────────┘       └──────┬──────┘       └────┬─────┘
                              │                    │
                   ┌──────────┼──────────┐         │
