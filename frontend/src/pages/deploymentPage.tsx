@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { DeploymentStepRow } from "../components/deployment/deploymentStepRow";
+import { PageHeader } from "../components/layout/pageHeader";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import {
@@ -47,12 +48,11 @@ export function DeploymentPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold tracking-[-0.02em]">{twinLabel} deployment</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Live steps from the twin environment lifecycle.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Deployment"
+        title={`${twinLabel} deployment`}
+        description="Live steps from the twin environment lifecycle."
+      />
 
       {environmentsQuery.isLoading ? (
         <Card className="grid gap-3 p-6">

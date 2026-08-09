@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { ProjectCard } from "../components/projects/projectCard";
+import { TwinGlyph } from "../components/twinGlyph";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
@@ -37,11 +38,14 @@ export function ProjectsListPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-[-0.03em]">Projects</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Pick a project to see its latest release, or connect a new one to start testing.
-          </p>
+        <div className="flex gap-3">
+          <TwinGlyph className="mt-2 h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.03em]">Projects</h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Pick a project to see its latest release, or connect a new one to start testing.
+            </p>
+          </div>
         </div>
         <Button className="gap-2" onClick={() => navigate("/projects/new")}>
           <Plus className="h-4 w-4" />
@@ -60,7 +64,8 @@ export function ProjectsListPage() {
           <ProjectCardSkeleton />
         </div>
       ) : projects.length === 0 ? (
-        <Card className="grid gap-3 p-10 text-center">
+        <Card className="grid justify-items-center gap-3 p-10 text-center">
+          <TwinGlyph className="h-6 w-6 text-primary" />
           <p className="text-sm font-medium">No projects yet</p>
           <p className="text-sm text-muted-foreground">
             Connect a repository that&rsquo;s already running in production to start testing

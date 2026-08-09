@@ -48,8 +48,20 @@ export function VerdictTranscript() {
 
       {/* transcript */}
       <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
-        <Column kind="production" host="checkout.deployclone.app" steps={STEPS} field={FIELD_DIFF} side="prod" />
-        <Column kind="twin" host="candidate-8f2a1.twin.zerops.app" steps={STEPS} field={FIELD_DIFF} side="twin" />
+        <Column
+          kind="production"
+          host="checkout.deployclone.app"
+          steps={STEPS}
+          field={FIELD_DIFF}
+          side="prod"
+        />
+        <Column
+          kind="twin"
+          host="twin-8f2a1.app.zerops.app"
+          steps={STEPS}
+          field={FIELD_DIFF}
+          side="twin"
+        />
       </div>
 
       {/* signal strip */}
@@ -61,7 +73,9 @@ export function VerdictTranscript() {
         ].map(([v, l]) => (
           <div key={l} className="px-3 py-3 text-center">
             <p className="font-display text-base font-bold tracking-tight">{v}</p>
-            <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-wide text-muted-foreground">{l}</p>
+            <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-wide text-muted-foreground">
+              {l}
+            </p>
           </div>
         ))}
       </div>
@@ -71,9 +85,9 @@ export function VerdictTranscript() {
           LLM explains &mdash; it doesn&rsquo;t decide
         </p>
         <p className="mt-2 border-l-2 border-border pl-3 text-[13px] italic leading-6 text-muted-foreground">
-          &ldquo;The twin&rsquo;s checkout response is missing the discount field production returns &mdash; the
-          promo-header fallback likely wasn&rsquo;t ported. That&rsquo;s a customer-facing regression, not
-          noise.&rdquo;
+          &ldquo;The twin&rsquo;s checkout response is missing the discount field production returns
+          &mdash; the promo-header fallback likely wasn&rsquo;t ported. That&rsquo;s a
+          customer-facing regression, not noise.&rdquo;
         </p>
       </div>
     </div>
@@ -97,14 +111,21 @@ function Column({
     <div className="px-5 py-4">
       <div className="flex items-center gap-2">
         <EnvDot kind={kind} />
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">{kind}</span>
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
+          {kind}
+        </span>
       </div>
       <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">{host}</p>
 
       <div className="mt-3.5 space-y-1.5">
         {steps.map((step) => (
-          <div key={step.path} className="flex items-center gap-2 font-mono text-[12.5px] leading-6">
-            <span className={`w-9 shrink-0 font-semibold ${METHOD_CLASS[step.method]}`}>{step.method}</span>
+          <div
+            key={step.path}
+            className="flex items-center gap-2 font-mono text-[12.5px] leading-6"
+          >
+            <span className={`w-9 shrink-0 font-semibold ${METHOD_CLASS[step.method]}`}>
+              {step.method}
+            </span>
             <span className="truncate text-foreground/80">{step.path}</span>
             <span className="ml-auto flex shrink-0 items-center gap-1.5 text-muted-foreground">
               {side === "prod" ? step.prodStatus : step.twinStatus}
@@ -121,7 +142,11 @@ function Column({
           }
         >
           <span className="shrink-0 text-muted-foreground">{field.key}:</span>
-          <span className={side === "twin" ? "truncate font-semibold text-block" : "truncate text-foreground/80"}>
+          <span
+            className={
+              side === "twin" ? "truncate font-semibold text-block" : "truncate text-foreground/80"
+            }
+          >
             {side === "prod" ? field.prod : field.twin}
           </span>
           {side === "twin" ? <X className="ml-auto h-3 w-3 shrink-0 text-block" /> : null}
@@ -135,7 +160,9 @@ function EnvDot({ kind }: { kind: "production" | "twin" }) {
   if (kind === "production") {
     return <span className="inline-block h-2 w-2 shrink-0 rounded-[2.5px] bg-primary" />;
   }
-  return <span className="inline-block h-2 w-2 shrink-0 rounded-[2.5px] border border-dashed border-primary/60" />;
+  return (
+    <span className="inline-block h-2 w-2 shrink-0 rounded-[2.5px] border border-dashed border-primary/60" />
+  );
 }
 
 function VerdictStamp({ phase, skipMotion }: { phase: Phase; skipMotion: boolean }) {

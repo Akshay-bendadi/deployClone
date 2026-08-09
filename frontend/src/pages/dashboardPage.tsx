@@ -1,17 +1,66 @@
+import { ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { BranchDiffCard } from "../components/dashboard/branchDiffCard";
-import { ReleaseStatusBadge } from "../components/status/releaseStatusBadge";
 import { RiskVerdictBadge } from "../components/status/riskVerdictBadge";
+import { TwinGlyph } from "../components/twinGlyph";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { useBranchDiffQuery, useTestReleaseMutation } from "../hooks/queries/useReleases";
 import { useRiskReportQuery } from "../hooks/queries/useRiskReport";
 import { useProjectContext } from "../hooks/useProjectContext";
+import { cn } from "../lib/utils";
 
 const TESTABLE_STATUSES = new Set(["CREATED", "SAFE", "REVIEW", "BLOCKED", "FAILED"]);
+
+const VERDICT_METER_CLASS: Record<string, string> = {
+  SAFE: "bg-safe",
+  REVIEW: "bg-review",
+  HIGH_RISK: "bg-block",
+  BLOCK: "bg-block",
+};
+
+function ComparisonPane({
+  dashed,
+  eyebrow,
+  branch,
+  sha,
+  href,
+}: {
+  dashed?: boolean;
+  eyebrow: string;
+  branch: string;
+  sha: string;
+  href?: string;
+}) {
+  return (
+    <div className="grid gap-2 bg-card p-5">
+      <p className="flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        <TwinGlyph
+          className={cn("h-3 w-3", dashed ? "text-muted-foreground opacity-70" : "text-primary")}
+        />
+        {eyebrow}
+      </p>
+      <p className="font-mono text-sm">
+        {branch}
+        <span className="text-muted-foreground">@{sha.slice(0, 7)}</span>
+      </p>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex w-fit items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+        >
+          Open live
+          <ArrowUpRight className="h-3 w-3" />
+        </a>
+      ) : null}
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const { project, latestRelease } = useProjectContext();
@@ -39,26 +88,38 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="grid gap-4 border-primary/15 bg-gradient-to-br from-primary/[0.04] to-transparent p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold tracking-[-0.02em]">
-                Release {latestRelease.version}
-              </h2>
-              <ReleaseStatusBadge status={latestRelease.status} />
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Production {project.production_branch}@{project.production_commit_sha.slice(0, 7)}{" "}
-              &rarr; {latestRelease.version} twin &middot; {latestRelease.branch}@
-              {latestRelease.commit_sha.slice(0, 7)}
-            </p>
-          </div>
-          <Button onClick={handleTestRelease} disabled={!canTest}>
-            {testMutation.isPending ? "Starting..." : "Test Release"}
-          </Button>
+      <Card className="flex flex-wrap items-center justify-between gap-4 border-primary/15 bg-gradient-to-br from-primary/[0.04] to-transparent p-6">
+        <div>
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+            Release
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em]">
+            {latestRelease.version}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Deploys an isolated twin from this branch and compares it against production before it
+            ships.
+          </p>
         </div>
+        <Button size="lg" onClick={handleTestRelease} disabled={!canTest}>
+          {testMutation.isPending ? "Starting..." : "Test Release"}
+        </Button>
       </Card>
+
+      <div className="grid overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 sm:gap-px">
+        <ComparisonPane
+          eyebrow="Production"
+          branch={project.production_branch}
+          sha={project.production_commit_sha}
+          href={project.production_url}
+        />
+        <ComparisonPane
+          dashed
+          eyebrow={`Twin · ${latestRelease.version}`}
+          branch={latestRelease.branch}
+          sha={latestRelease.commit_sha}
+        />
+      </div>
 
       <BranchDiffCard
         diff={branchDiffQuery.data}
@@ -83,9 +144,23 @@ export function DashboardPage() {
             </p>
             <RiskVerdictBadge verdict={riskReport.verdict} />
           </div>
-          <p className="font-mono text-3xl font-semibold tracking-[-0.03em]">
-            {riskReport.risk_score} / 100
-          </p>
+          <div className="grid gap-2">
+            <div className="flex items-baseline gap-2">
+              <p className="font-mono text-3xl font-semibold tracking-[-0.03em]">
+                {riskReport.risk_score}
+              </p>
+              <p className="text-sm text-muted-foreground">/ 100</p>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-[width]",
+                  VERDICT_METER_CLASS[riskReport.verdict],
+                )}
+                style={{ width: `${Math.min(100, Math.max(0, riskReport.risk_score))}%` }}
+              />
+            </div>
+          </div>
           {riskReport.ai_explanation ? (
             <p className="text-sm leading-6 text-muted-foreground">{riskReport.ai_explanation}</p>
           ) : (

@@ -50,14 +50,18 @@ export function CreateReleaseForm({ projectId }: { projectId: string }) {
       </div>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}>
         <Label className="grid gap-2">
-          Version label
+          <span>
+            Version label <span className="text-block">*</span>
+          </span>
           <Input {...form.register("version")} placeholder="v1.1.0" />
           {form.formState.errors.version ? (
             <span className="text-xs text-block">{form.formState.errors.version.message}</span>
           ) : null}
         </Label>
         <Label className="grid gap-2">
-          Branch
+          <span>
+            Branch <span className="text-block">*</span>
+          </span>
           {branchesQuery.isError ? (
             <Input
               {...form.register("branch")}

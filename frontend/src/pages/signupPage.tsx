@@ -1,3 +1,4 @@
+import { Lock, Mail } from "lucide-react";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { Link, Navigate, useNavigate } from "react-router-dom";
@@ -5,8 +6,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-
-import { Lock, Mail } from "lucide-react";
 
 import { AuthShell } from "../components/auth/authShell";
 import { BrandMark } from "../components/brandMark";
@@ -73,7 +72,9 @@ export function SignupPage() {
         </div>
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Label className="grid gap-2">
-            Email
+            <span>
+              Email <span className="text-block">*</span>
+            </span>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -88,7 +89,9 @@ export function SignupPage() {
             ) : null}
           </Label>
           <Label className="grid gap-2">
-            Password
+            <span>
+              Password <span className="text-block">*</span>
+            </span>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
