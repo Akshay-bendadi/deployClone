@@ -1,15 +1,17 @@
 import type { SubmitHandler } from "react-hook-form";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { useProjectBranchesQuery } from "../../hooks/queries/useBranches";
 import { useCreateReleaseMutation } from "../../hooks/queries/useReleases";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const createReleaseSchema = z.object({
   version: z.string().min(1, "Version is required"),
@@ -19,6 +21,9 @@ const createReleaseSchema = z.object({
 type CreateReleaseValues = z.infer<typeof createReleaseSchema>;
 
 export function CreateReleaseForm({ projectId }: { projectId: string }) {
+  const branchesQuery = useProjectBranchesQuery(projectId);
+  const branches = branchesQuery.data ?? [];
+
   const form = useForm<CreateReleaseValues>({
     resolver: zodResolver(createReleaseSchema),
     defaultValues: { version: "", branch: "" },
@@ -40,8 +45,7 @@ export function CreateReleaseForm({ projectId }: { projectId: string }) {
       <div>
         <p className="text-sm font-medium">No releases yet</p>
         <p className="text-sm text-muted-foreground">
-          Give it a branch to test — deployClone resolves the branch&rsquo;s latest commit via
-          GitHub automatically.
+          Pick a branch to test — deployClone resolves its latest commit via GitHub automatically.
         </p>
       </div>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}>
@@ -54,7 +58,45 @@ export function CreateReleaseForm({ projectId }: { projectId: string }) {
         </Label>
         <Label className="grid gap-2">
           Branch
-          <Input {...form.register("branch")} placeholder="main" />
+          {branchesQuery.isError ? (
+            <Input
+              {...form.register("branch")}
+              placeholder="main"
+              aria-label="Branch (couldn't load branch list, type it manually)"
+            />
+          ) : (
+            <Controller
+              control={form.control}
+              name="branch"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={branchesQuery.isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        branchesQuery.isLoading ? "Loading branches..." : "Select a branch"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch} value={branch}>
+                        {branch}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          )}
+          {branchesQuery.isError ? (
+            <span className="text-xs text-muted-foreground">
+              Couldn&rsquo;t fetch branches from GitHub &mdash; type the branch name directly.
+            </span>
+          ) : null}
           {form.formState.errors.branch ? (
             <span className="text-xs text-block">{form.formState.errors.branch.message}</span>
           ) : null}
