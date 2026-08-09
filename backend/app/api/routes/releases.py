@@ -109,9 +109,9 @@ def teardown_candidate(release_id: uuid.UUID, db: SessionDep, current_user: Curr
         .first()
     )
     if candidate is None:
-        raise HTTPException(status_code=404, detail="No candidate environment for this release")
+        raise HTTPException(status_code=404, detail="No twin environment for this release")
     if not candidate.zerops_service_stack_id:
-        raise HTTPException(status_code=400, detail="Candidate has already been torn down")
+        raise HTTPException(status_code=400, detail="Twin has already been torn down")
 
     zerops = get_zerops_client()
     if zerops is None:
@@ -121,7 +121,7 @@ def teardown_candidate(release_id: uuid.UUID, db: SessionDep, current_user: Curr
         zerops.delete_service_stack(candidate.zerops_service_stack_id)
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code not in (400, 404):
-            raise HTTPException(status_code=502, detail="Failed to delete candidate on Zerops") from exc
+            raise HTTPException(status_code=502, detail="Failed to delete twin on Zerops") from exc
 
     candidate.zerops_service_stack_id = None
     db.commit()

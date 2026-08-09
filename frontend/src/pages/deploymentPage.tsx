@@ -17,7 +17,7 @@ import {
 import { Skeleton } from "../components/ui/skeleton";
 import {
   useDeploymentStepsQuery,
-  useTeardownCandidateMutation,
+  useTeardownTwinMutation,
 } from "../hooks/queries/useDeployments";
 import { useEnvironmentsQuery } from "../hooks/queries/useEnvironments";
 import { useProjectContext } from "../hooks/useProjectContext";
@@ -29,22 +29,17 @@ export function DeploymentPage() {
   const twinLabel = `${latestRelease.version} twin`;
 
   const environmentsQuery = useEnvironmentsQuery(latestRelease.id, isActive);
-  // A release can be retried multiple times, each creating a new twin environment
-  // (ordered oldest-first by the API) — always show the latest attempt, not the first.
-  const candidates = environmentsQuery.data?.filter(
+  const twins = environmentsQuery.data?.filter(
     (environment) => environment.kind === "candidate",
   );
-  const candidate = candidates?.[candidates.length - 1];
-  const deploymentsQuery = useDeploymentStepsQuery(candidate?.id, isActive);
-  const teardownMutation = useTeardownCandidateMutation(latestRelease.id);
+  const twin = twins?.[twins.length - 1];
+  const deploymentsQuery = useDeploymentStepsQuery(twin?.id, isActive);
+  const teardownMutation = useTeardownTwinMutation(latestRelease.id);
 
-  // The backend records the candidate's URL before running its health check (so it's
-  // visible for debugging even on failure) — only treat it as actually browsable once
-  // that step reports complete, otherwise the link just 404s/502s.
   const healthChecksPassed = deploymentsQuery.data?.some(
     (step) => step.step === "Run health checks" && step.status === "complete",
   );
-  const canBrowse = !!candidate?.api_url && !candidate.candidate_torn_down && healthChecksPassed;
+  const canBrowse = !!twin?.api_url && !twin.candidate_torn_down && healthChecksPassed;
 
   return (
     <div className="space-y-6">
@@ -60,7 +55,7 @@ export function DeploymentPage() {
           <Skeleton className="h-5 w-5/6" />
           <Skeleton className="h-5 w-4/6" />
         </Card>
-      ) : !candidate ? (
+      ) : !twin ? (
         <Card className="p-6">
           <p className="text-sm text-muted-foreground">
             {isActive
@@ -75,12 +70,12 @@ export function DeploymentPage() {
               <div>
                 <p className="text-sm font-medium">{twinLabel} is live</p>
                 <a
-                  href={candidate.api_url}
+                  href={twin.api_url}
                   target="_blank"
                   rel="noreferrer"
                   className="text-sm text-primary underline underline-offset-2"
                 >
-                  {candidate.api_url}
+                  {twin.api_url}
                 </a>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Left running so you can inspect it. Delete it when you&rsquo;re done to stop
@@ -119,7 +114,7 @@ export function DeploymentPage() {
                 </DialogContent>
               </Dialog>
             </Card>
-          ) : candidate.candidate_torn_down ? (
+          ) : twin.candidate_torn_down ? (
             <Card className="p-6">
               <p className="text-sm text-muted-foreground">
                 The {twinLabel}&rsquo;s service has been deleted. The steps below are kept for

@@ -17,7 +17,7 @@ export function listTestRuns(releaseId: string) {
   return api.get<TestRun[]>(`/api/v1/releases/${releaseId}/test-runs`).then((res) => res.data);
 }
 
-export function teardownCandidate(releaseId: string) {
+export function teardownTwin(releaseId: string) {
   return api
     .post<Environment>(`/api/v1/releases/${releaseId}/candidate/teardown`)
     .then((res) => res.data);
