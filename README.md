@@ -7,23 +7,28 @@ A green CI pipeline proves your code compiled and your tests passed — it does 
 
 ## The problem
 
-You push a commit. CI is green. You deploy. Users start reporting 500s on an endpoint that worked yesterday. The deployment succeeded — the _release_ didn't.
+You push a commit. CI is green. You deploy. Then something breaks — an API endpoint starts returning 500s, a frontend layout shifts, a page that loaded fine yesterday now crashes. The deployment succeeded — the _release_ didn't.
 
-Traditional deployment pipelines test code in isolation (unit tests, integration tests against mocked services). They never compare the actual HTTP behaviour of the new release against the live system it's replacing.
+Traditional pipelines test code in isolation. They never let you see the new release running live, side-by-side with what's already in production, before it ships.
 
 ## How deployClone solves it
 
-deployClone stands a **live twin** of every release next to production, replays real HTTP workflows against both, and diffs the results into a verdict — before your users find the regression for you.
+deployClone deploys a **live twin** of every release commit next to production on Zerops — whether it's a backend API or a frontend app. You get a real, running copy of the new code to test against before merging.
+
+- **Backend / API projects** — deployClone replays your defined HTTP workflows against both production and the twin, compares responses (status, shape, latency), and scores the risk automatically.
+- **Frontend projects** — deployClone deploys the twin and gives you a live URL to open side-by-side with production for visual testing. Use a start command like `npx serve dist -p 3000` to serve static builds.
+
+Both project types also get **AI-powered diff analysis** that scans the actual code changes for breaking changes and risk flags.
 
 ### 1. Register a project
 
 Point deployClone at a GitHub repository that's already running in production:
 
 - **Repository URL** — e.g. `github.com/acme/payments-api`
-- **Production URL** — e.g. `https://api.acme.com`
+- **Production URL** — the live app deployClone compares the twin against
 - **Production branch** — e.g. `main`
-- **Runtime, build command, start command** — how to build and boot the app
-- **Root directory** _(optional)_ — for monorepos where the app lives in a subdirectory (e.g. `backend`). The twin deploys only that directory's contents, matching production's structure.
+- **Runtime, build command, start command** — how to build and boot the app (for frontends: `npx serve dist -p 3000`)
+- **Root directory** _(optional)_ — for monorepos where the app lives in a subdirectory
 
 ### 2. Create a release
 
@@ -36,7 +41,7 @@ Branch: feat/new-pricing
 
 ### 3. The twin deploys
 
-The background worker takes over:
+The background worker:
 
 1. Downloads the exact commit as a tarball from GitHub
 2. Strips to the root directory (if configured) so the twin's file layout matches production
@@ -44,21 +49,21 @@ The background worker takes over:
 4. Creates a temporary service on Zerops and uploads the code
 5. Builds, deploys, and health-checks it
 
-The result: two running services — **production** (your live app) and the **twin** (the release commit, deployed identically).
+The result: two running instances — **production** (your live app) and the **twin** (the release commit, deployed identically).
 
 ```
 ┌──────────────────────┐          ┌──────────────────────┐
 │     Production       │          │        Twin          │
 │  main @ 9f8e7d6      │          │  feat/new-pricing    │
-│  api.acme.com        │          │  @ a1b2c3d           │
+│  app.acme.com        │          │  @ a1b2c3d           │
 │                      │          │  twin-xk2.zerops.app │
 │  ■ (live)            │          │  ┊ (twin)            │
 └──────────────────────┘          └──────────────────────┘
 ```
 
-### 4. Workflows run against both
+### 4. Test the release
 
-You define **Workflows** — ordered sequences of real HTTP requests that exercise your API:
+**Backend projects** — you define **Workflows**, ordered sequences of real HTTP requests:
 
 ```
 Workflow: "Create and fetch order"
@@ -66,11 +71,15 @@ Workflow: "Create and fetch order"
   Step 2 → GET  /api/orders/:id
 ```
 
-deployClone replays every step against **both** production and the twin, capturing the full request/response pair from each.
+deployClone replays every step against both production and the twin, capturing the full request/response pair from each.
+
+**Frontend projects** — the twin is live and you get a URL to open it, click around, and visually compare it with production.
+
+**Both** — AI diff analysis scans the actual code patches between commits and flags breaking changes and risk areas.
 
 ### 5. Compare and score
 
-For every workflow step, the comparator diffs production vs. twin across three signals:
+The comparator diffs production vs. twin across three signals:
 
 | Signal | What it checks | Example failure |
 |---|---|---|
@@ -78,32 +87,37 @@ For every workflow step, the comparator diffs production vs. twin across three s
 | **Shape** | Response body structure matches (keys, types) | Twin drops the `price` field |
 | **Latency** | Response time delta is within threshold | Twin is 4x slower than prod |
 
-Each diff is scored by a deterministic **risk engine** (no AI in the scoring path) into a verdict:
+AI diff analysis adds to the score:
 
-- **SAFE** — responses are equivalent
+| AI finding | Severity | Score impact |
+|---|---|---|
+| **Breaking change** | CRITICAL | +40 |
+| **Risk flag** | MEDIUM | +10 |
+
+The risk engine (fully deterministic — no AI in the scoring path) produces a verdict:
+
+- **SAFE** — no regressions detected
 - **REVIEW** — minor differences worth checking
 - **HIGH_RISK** — significant divergence detected
 - **BLOCK** — the twin is clearly broken
 
 ### 6. Evidence and auto-teardown
 
-Every request, response, diff, and score is stored as auditable evidence. Nothing is thrown away — you can inspect exactly why a release was blocked, down to the raw response body.
+Every request, response, diff, and score is stored as auditable evidence. Nothing is thrown away — you can inspect exactly why a release was flagged, down to the raw response body.
 
-An optional AI explanation layer (NVIDIA `llama-3.1-8b-instruct`) turns the deterministic evidence into a human-readable summary, but the verdict itself never depends on it.
+An optional AI explanation layer (NVIDIA `meta/llama-3.1-8b-instruct`) turns the evidence into a human-readable summary, but the verdict itself never depends on it.
 
-After testing completes, the twin auto-deletes after 5 minutes to stop Zerops billing. You can also tear it down manually at any time from the deployment page.
+After testing completes, the twin auto-deletes after 5 minutes to stop Zerops billing. A live countdown shows on the deployment page. You can also tear it down manually at any time.
 
 ---
 
-## Current scope
+## What you can test
 
-deployClone currently supports **single-service repositories** — one runtime, one build command, one start command. This covers:
+deployClone supports **any single-service repository** — one runtime, one build command, one start command:
 
-- A standalone API (Node.js, Python, Go, etc.)
-- A backend service in a monorepo (using the root directory setting)
-- Any single-process HTTP application
-
-It does **not** yet handle multi-service architectures (e.g. an API + a separate worker + a database, all deployed together). The twin is always a single Zerops service running the configured start command.
+- **Backend APIs** (Node.js, Python, Go, Ruby, Java, .NET, etc.) — automated workflow replay + response comparison + AI diff analysis + risk scoring
+- **Frontend apps** (React, Vue, Next.js, etc.) — twin deployment + live URL for visual testing + AI diff analysis
+- **Monorepo subdirectories** — deploy just one service from a larger repo using the root directory setting
 
 ---
 
@@ -127,9 +141,9 @@ It does **not** yet handle multi-service architectures (e.g. an API + a separate
 
 **External services:**
 
-- **GitHub API** — branch resolution, exact-commit tarball download.
+- **GitHub API** — branch resolution, commit comparison, exact-commit tarball download, AI diff analysis input.
 - **Zerops** — twin deployment platform. Builds and hosts the twin service.
-- **NVIDIA Build** — optional AI explanation layer (`meta/llama-3.1-8b-instruct`). No-ops without a key.
+- **NVIDIA Build** — AI-powered diff analysis (`meta/llama-3.1-8b-instruct`) for breaking change detection and risk explanations. No-ops without a key.
 
 ---
 
@@ -202,7 +216,7 @@ App: [http://localhost:5173](http://localhost:5173)
 | `CORS_ORIGINS` | No | Comma-separated allowed origins (defaults to `http://localhost:5173`) |
 | `ZEROPS_API_TOKEN` | For deploys | Zerops personal access token |
 | `ZEROPS_PROJECT_ID` | For deploys | Zerops project to deploy twins into |
-| `NVIDIA_API_KEY` | No | Enables AI risk explanations (no-ops without it) |
+| `NVIDIA_API_KEY` | No | Enables AI diff analysis and risk explanations (no-ops without it) |
 
 ## Deploying to Zerops
 
@@ -220,9 +234,9 @@ See `zerops.yaml` at the project root for the full deployment configuration:
 
 ## Honest limitations
 
-- **Single-service only.** The twin is one Zerops service. Multi-service architectures (API + worker + database) aren't provisioned together — only the HTTP-serving process is cloned.
-- **Synthetic traffic only.** Workflows are manually defined HTTP sequences, not replayed production traffic. They catch structural regressions, not load-dependent ones.
-- **Shared database caveat.** The twin typically shares production's database (via env vars). If workflows write data, both production and twin will mutate the same database — design workflows accordingly.
+- **Single-service only.** The twin is one Zerops service. Multi-service architectures (API + worker + database) aren't provisioned together.
+- **Synthetic traffic.** Workflows are manually defined HTTP sequences, not replayed production traffic. They catch structural regressions, not load-dependent ones.
+- **Shared database caveat.** The twin can share production's database (via env vars). If workflows write data, both environments mutate the same store — design workflows accordingly.
 - **Zerops-coupled.** Twin infrastructure is provisioned on Zerops. There's no pluggable provider abstraction yet.
 
 ## License
