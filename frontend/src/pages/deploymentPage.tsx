@@ -78,9 +78,9 @@ export function DeploymentPage() {
                 >
                   {twin.api_url}
                 </a>
-                {candidate.auto_teardown_at ? (
+                {twin.auto_teardown_at ? (
                   <div className="mt-1">
-                    <TeardownCountdown teardownAt={candidate.auto_teardown_at} />
+                    <TeardownCountdown teardownAt={twin.auto_teardown_at} />
                   </div>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground">
