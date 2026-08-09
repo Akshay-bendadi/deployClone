@@ -20,17 +20,17 @@ function ResultCell({ testRun, label }: { testRun: TestRun | undefined; label: s
 export function WorkflowResultRow({
   workflow,
   productionRun,
-  candidateRun,
+  twinRun,
 }: {
   workflow: Workflow;
   productionRun: TestRun | undefined;
-  candidateRun: TestRun | undefined;
+  twinRun: TestRun | undefined;
 }) {
   return (
     <Card className="grid grid-cols-[1fr_auto_auto] items-center gap-6 p-5">
       <p className="text-sm font-semibold">{workflow.name}</p>
       <ResultCell testRun={productionRun} label="Production" />
-      <ResultCell testRun={candidateRun} label="Twin" />
+      <ResultCell testRun={twinRun} label="Twin" />
     </Card>
   );
 }

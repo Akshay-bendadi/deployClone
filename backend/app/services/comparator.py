@@ -58,7 +58,7 @@ def compare_functional(
         )
 
     if candidate_error and not production_error:
-        findings.append(RegressionFinding(RegressionSeverity.HIGH, f"New error on candidate: {candidate_error}"))
+        findings.append(RegressionFinding(RegressionSeverity.HIGH, f"New error on twin: {candidate_error}"))
 
     if isinstance(production_body, dict) and isinstance(candidate_body, dict):
         production_keys = _flatten_keys(production_body)

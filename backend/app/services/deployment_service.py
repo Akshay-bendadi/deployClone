@@ -38,9 +38,9 @@ from app.services.zerops_client import ZeropsClient, get_zerops_client
 LIFECYCLE_STEPS = [
     "Resolve commit",
     "Prepare deployment definition",
-    "Create candidate service",
-    "Upload candidate code",
-    "Build and deploy candidate",
+    "Create twin service",
+    "Upload twin code",
+    "Build and deploy twin",
     "Run health checks",
 ]
 
@@ -251,12 +251,12 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
     zerops = get_zerops_client()
     if zerops is None or not settings.zerops_project_id:
         fail(
-            "Create candidate service",
-            "ZEROPS_API_TOKEN/ZEROPS_PROJECT_ID is not configured — candidate provisioning "
+            "Create twin service",
+            "ZEROPS_API_TOKEN/ZEROPS_PROJECT_ID is not configured — twin provisioning "
             "requires both.",
         )
 
-    start("Create candidate service")
+    start("Create twin service")
     try:
         # KNOWN GAP: env_vars here (plan.txt §17's candidate-only config, e.g. a test
         # DATABASE_URL) is confirmed non-functional — verified by direct testing that
@@ -271,33 +271,33 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
             env_vars=_env_vars_dict(project) or None,
         )
     except httpx.HTTPError as exc:
-        fail("Create candidate service", str(exc))
+        fail("Create twin service", str(exc))
     # Record the id immediately, before anything that could still fail — otherwise a
     # later failure in this same step leaves a real Zerops service created but
     # untracked in our DB, which _cleanup_candidate can never find or delete, and its
     # hostname permanently blocks retries (hostnames are deterministic per release).
     environment.zerops_service_stack_id = service_stack_id
     db.commit()
-    finish("Create candidate service")
+    finish("Create twin service")
 
-    start("Upload candidate code")
+    start("Upload twin code")
     try:
         tarball = download_repo_tarball(project.repository, release.commit_sha, token=project.github_token)
     except GitHubError as exc:
-        fail("Upload candidate code", str(exc))
+        fail("Upload twin code", str(exc))
     tarball = _strip_tarball_root(tarball)
     try:
         app_version_id, upload_url = zerops.create_app_version(service_stack_id)
         zerops.upload_artifact(upload_url, tarball)
     except httpx.HTTPError as exc:
-        fail("Upload candidate code", str(exc))
-    finish("Upload candidate code")
+        fail("Upload twin code", str(exc))
+    finish("Upload twin code")
 
-    start("Build and deploy candidate")
+    start("Build and deploy twin")
     try:
         zerops.build_and_deploy(app_version_id, zerops_yaml)
     except httpx.HTTPError as exc:
-        fail("Build and deploy candidate", str(exc))
+        fail("Build and deploy twin", str(exc))
 
     deadline = time.monotonic() + _BUILD_POLL_TIMEOUT_S
     status = "WAITING_TO_BUILD"
@@ -308,8 +308,8 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
             break
         time.sleep(_BUILD_POLL_INTERVAL_S)
     if status != "ACTIVE":
-        fail("Build and deploy candidate", f"Build ended with status {status}")
-    finish("Build and deploy candidate")
+        fail("Build and deploy twin", f"Build ended with status {status}")
+    finish("Build and deploy twin")
 
     start("Run health checks")
     # Must happen after the build, not at service creation — enable-subdomain-access
@@ -322,13 +322,13 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
         fail("Run health checks", f"Could not enable subdomain access: {exc}")
     public_url = _public_url(zerops, service_stack_id)
     if not public_url:
-        fail("Run health checks", "Candidate deployed but has no public URL")
+        fail("Run health checks", "Twin deployed but has no public URL")
     environment.api_url = public_url
     db.commit()
     if not _wait_for_healthy(public_url):
         fail(
             "Run health checks",
-            f"Candidate deployed to {public_url} but never responded successfully after "
+            f"Twin deployed to {public_url} but never responded successfully after "
             f"{_HEALTH_CHECK_ATTEMPTS * _HEALTH_CHECK_INTERVAL_S:.0f}s — check the app's own "
             "logs on Zerops, it likely crashed on startup",
         )

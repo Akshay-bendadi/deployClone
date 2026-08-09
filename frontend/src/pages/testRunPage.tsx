@@ -19,13 +19,10 @@ export function TestRunPage() {
   const environmentsQuery = useEnvironmentsQuery(latestRelease.id, isActive);
   const testRunsQuery = useTestRunsQuery(latestRelease.id, isActive);
 
-  // A release can be retried multiple times, each creating a fresh production AND
-  // candidate environment (ordered oldest-first by the API) — always use the latest
-  // attempt's pair, not the first.
   const productionEnvs = environmentsQuery.data?.filter((e) => e.kind === "production");
-  const candidateEnvs = environmentsQuery.data?.filter((e) => e.kind === "candidate");
+  const twinEnvs = environmentsQuery.data?.filter((e) => e.kind === "candidate");
   const productionEnv = productionEnvs?.[productionEnvs.length - 1];
-  const candidateEnv = candidateEnvs?.[candidateEnvs.length - 1];
+  const twinEnv = twinEnvs?.[twinEnvs.length - 1];
   const workflows = workflowsQuery.data ?? [];
   const testRuns = testRunsQuery.data ?? [];
 
@@ -65,8 +62,8 @@ export function TestRunPage() {
                 (run) =>
                   run.workflow_id === workflow.id && run.environment_id === productionEnv?.id,
               )}
-              candidateRun={testRuns.find(
-                (run) => run.workflow_id === workflow.id && run.environment_id === candidateEnv?.id,
+              twinRun={testRuns.find(
+                (run) => run.workflow_id === workflow.id && run.environment_id === twinEnv?.id,
               )}
             />
           ))}

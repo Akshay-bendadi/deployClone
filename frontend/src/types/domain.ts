@@ -1,7 +1,3 @@
-// Domain types mirrored exactly from the backend's Pydantic response schemas
-// (backend/app/schemas/*.py) — field names match the real JSON wire format
-// (snake_case), since nothing on either side converts casing.
-
 export type ReleaseStatus =
   | "CREATED"
   | "DEPLOYING"
