@@ -1,8 +1,7 @@
-"""Candidate deployment lifecycle (plan.txt §16).
+"""Candidate deployment lifecycle.
 
 Each lifecycle step is persisted as a Deployment row with a real status
-(pending/in_progress/complete/failed) — per plan.txt §31, the frontend
-deployment screen must show actual backend statuses, not fake animations.
+(pending/in_progress/complete/failed).
 
 Every step here is real and has been verified end-to-end against a live Zerops
 project: create a code-less service, download the release's exact commit as a
@@ -310,7 +309,7 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
 
     start("Create twin service")
     try:
-        # KNOWN GAP: env_vars here (plan.txt §17's candidate-only config, e.g. a test
+        # KNOWN GAP: env_vars here (candidate-only config, e.g. a test
         # DATABASE_URL) is confirmed non-functional — verified by direct testing that
         # neither `envSecrets` nor `envVariables` on this import YAML actually reach the
         # container (silently dropped, no error, nothing shows in the service's env

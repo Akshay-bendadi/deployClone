@@ -1,4 +1,4 @@
-"""Workflow runner: executes a workflow's steps against a base URL (plan.txt §19-22).
+"""Workflow runner: executes a workflow's steps against a base URL.
 
 Steps may reference prior step responses via "{step_name.field.path}" placeholders,
 e.g. a "close_issue" step's path can be "/issues/{create_issue.id}".

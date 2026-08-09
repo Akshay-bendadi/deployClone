@@ -23,7 +23,7 @@ class Release(Base, IdMixin, CreatedAtMixin):
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), index=True)
     version: Mapped[str] = mapped_column(String(100))
     branch: Mapped[str] = mapped_column(String(255))
-    # resolved server-side from `branch` via the GitHub API at release-creation time (plan.txt §6)
+    # resolved server-side from `branch` via the GitHub API at release-creation time
     commit_sha: Mapped[str] = mapped_column(String(64))
     status: Mapped[ReleaseStatus] = mapped_column(
         Enum(ReleaseStatus, name="release_status"), default=ReleaseStatus.CREATED

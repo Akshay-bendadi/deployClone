@@ -1,4 +1,4 @@
-"""Deterministic risk engine (plan.txt §27-28).
+"""Deterministic risk engine.
 
 Converts a set of regression findings into a 0-100 risk score and a verdict.
 This runs before, and independently of, any AI explanation step.

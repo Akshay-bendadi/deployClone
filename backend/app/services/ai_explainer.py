@@ -1,4 +1,4 @@
-"""AI explanation layer (plan.txt §29).
+"""AI explanation layer.
 
 Deterministic first, AI second: this only turns already-decided evidence into
 prose. It never influences the risk score or verdict, and returns None

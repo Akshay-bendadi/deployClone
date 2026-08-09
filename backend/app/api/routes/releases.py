@@ -74,7 +74,7 @@ def get_release(release_id: uuid.UUID, db: SessionDep, current_user: CurrentUser
 
 @releases_router.post("/{release_id}/test", response_model=ReleaseRead)
 def trigger_test_release(release_id: uuid.UUID, db: SessionDep, current_user: CurrentUserDep) -> Release:
-    """Kicks off the candidate deployment lifecycle (plan.txt §16) as a background job."""
+    """Kicks off the candidate deployment lifecycle as a background job."""
     release = get_owned_release_or_404(db, release_id, current_user)
 
     release.status = ReleaseStatus.DEPLOYING

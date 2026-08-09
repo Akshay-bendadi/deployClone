@@ -1,11 +1,11 @@
-"""Thin wrapper around the Zerops public API (plan.txt §16-17).
+"""Thin wrapper around the Zerops public API.
 
 Every endpoint below is verified against Zerops' real OpenAPI spec (fetched from
 `{base_url}/swagger/openapi.yml` — their interactive Swagger UI is a JS-rendered SPA
 that can't be scraped, but it loads this static spec file directly) and, for the
 core read/write flow, against a live token and project.
 
-Candidate creation flow (plan.txt §16 steps 3-11):
+Candidate creation flow:
   1. import_service_stack  — POST /project/{id}/service-stack/import, creates the
      service with `startWithoutCode: true` (code is uploaded separately, not via
      buildFromGit, because buildFromGit only supports a repo's default branch with
