@@ -257,6 +257,17 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
       ) : (
         <>
           <div className="grid gap-4">
+            <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">Backend services</span> get full automated testing with
+                workflow replay and response comparison.{" "}
+                <span className="font-medium text-foreground">Frontend apps</span> deploy a twin you can open
+                side-by-side with production for visual testing. Use a start command
+                like <code className="rounded bg-muted px-1 py-0.5 text-xs">npx serve dist -p 3000</code> to
+                serve static builds.
+              </p>
+            </div>
             {!isEditMode ? (
               <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-4 py-3">
                 <div className="flex items-center gap-2 text-sm">
