@@ -60,6 +60,7 @@ class BranchDiffFile(BaseModel):
     status: str
     additions: int
     deletions: int
+    patch: str | None = None
 
 
 class BranchDiff(BaseModel):
@@ -92,6 +93,7 @@ def compare_branches(repository: str, base: str, head: str, token: str | None = 
                 status=f["status"],
                 additions=f.get("additions", 0),
                 deletions=f.get("deletions", 0),
+                patch=f.get("patch"),
             )
             for f in payload.get("files", []) or []
         ],
