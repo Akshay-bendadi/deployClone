@@ -1,11 +1,13 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.project import Project
+from app.models.release import Release
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.services.github_client import GitHubError, resolve_branch_commit
+from app.services.github_client import GitHubError, list_branches, resolve_branch_commit
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
@@ -17,9 +19,49 @@ def get_owned_project_or_404(db: SessionDep, project_id: uuid.UUID, current_user
     return project
 
 
+def _attach_latest_release_status(db: SessionDep, project: Project) -> Project:
+    # Non-persisted attribute — Pydantic picks it up via from_attributes.
+    latest = (
+        db.query(Release.status)
+        .filter(Release.project_id == project.id)
+        .order_by(Release.created_at.desc())
+        .first()
+    )
+    project.latest_release_status = latest[0] if latest else None  # type: ignore[attr-defined]
+    return project
+
+
 def _resolve_production_commit(repository: str, branch: str, token: str | None) -> str:
     try:
         return resolve_branch_commit(repository, branch, token=token)
+    except GitHubError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class BranchesRequest(BaseModel):
+    repository: str
+    # blank/omitted means "use this project's stored token" when project_id is given,
+    # otherwise treated as a public repo
+    github_token: str | None = None
+
+
+class BranchesResponse(BaseModel):
+    branches: list[str]
+
+
+@router.post("/branches", response_model=BranchesResponse)
+def list_repo_branches(payload: BranchesRequest, current_user: CurrentUserDep) -> BranchesResponse:
+    try:
+        return BranchesResponse(branches=list_branches(payload.repository, token=payload.github_token))
+    except GitHubError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/{project_id}/branches", response_model=BranchesResponse)
+def list_project_branches(project_id: uuid.UUID, db: SessionDep, current_user: CurrentUserDep) -> BranchesResponse:
+    project = get_owned_project_or_404(db, project_id, current_user)
+    try:
+        return BranchesResponse(branches=list_branches(project.repository, token=project.github_token))
     except GitHubError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -37,22 +79,24 @@ def create_project(payload: ProjectCreate, db: SessionDep, current_user: Current
     db.add(project)
     db.commit()
     db.refresh(project)
-    return project
+    return _attach_latest_release_status(db, project)
 
 
 @router.get("", response_model=list[ProjectRead])
 def list_projects(db: SessionDep, current_user: CurrentUserDep) -> list[Project]:
-    return list(
+    projects = (
         db.query(Project)
         .filter(Project.owner_id == current_user.id)
         .order_by(Project.created_at.desc())
         .all()
     )
+    return [_attach_latest_release_status(db, project) for project in projects]
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
 def get_project(project_id: uuid.UUID, db: SessionDep, current_user: CurrentUserDep) -> Project:
-    return get_owned_project_or_404(db, project_id, current_user)
+    project = get_owned_project_or_404(db, project_id, current_user)
+    return _attach_latest_release_status(db, project)
 
 
 @router.patch("/{project_id}", response_model=ProjectRead)
@@ -73,7 +117,7 @@ def update_project(
 
     db.commit()
     db.refresh(project)
-    return project
+    return _attach_latest_release_status(db, project)
 
 
 @router.delete("/{project_id}", status_code=204)

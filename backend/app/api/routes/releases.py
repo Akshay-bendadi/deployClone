@@ -17,7 +17,7 @@ from app.schemas.environment import EnvironmentRead
 from app.schemas.release import ReleaseCreate, ReleaseRead
 from app.schemas.risk_report import RiskReportRead
 from app.schemas.test_run import TestRunRead
-from app.services.github_client import GitHubError, resolve_branch_commit
+from app.services.github_client import BranchDiff, GitHubError, compare_branches, resolve_branch_commit
 from app.services.zerops_client import get_zerops_client
 from app.worker.queue import enqueue_release_test
 
@@ -127,6 +127,21 @@ def teardown_candidate(release_id: uuid.UUID, db: SessionDep, current_user: Curr
     db.commit()
     db.refresh(candidate)
     return candidate
+
+
+@releases_router.get("/{release_id}/branch-diff", response_model=BranchDiff)
+def get_branch_diff(release_id: uuid.UUID, db: SessionDep, current_user: CurrentUserDep) -> BranchDiff:
+    # Diffs against production_commit_sha (frozen at last deploy), not production_branch's
+    # current tip — the tip may have moved since; what matters is the diff against what's
+    # actually live.
+    release = get_owned_release_or_404(db, release_id, current_user)
+    project = release.project
+    try:
+        return compare_branches(
+            project.repository, project.production_commit_sha, release.commit_sha, token=project.github_token
+        )
+    except GitHubError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @releases_router.get("/{release_id}/test-runs", response_model=list[TestRunRead])

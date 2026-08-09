@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.models.enums import ReleaseStatus
+
 
 class EnvVar(BaseModel):
     key: str
@@ -64,3 +66,6 @@ class ProjectRead(BaseModel):
     env_vars: list[EnvVar]
     build_command: str | None
     start_command: str | None
+    # Set by the list/get route from the project's most recent release (not a DB column) —
+    # lets the projects list show real status at a glance instead of just static config.
+    latest_release_status: ReleaseStatus | None = None
