@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { DeploymentStepRow } from "../components/deployment/deploymentStepRow";
 import { TeardownCountdown } from "../components/deployment/teardownCountdown";
@@ -42,6 +42,11 @@ export function DeploymentPage() {
   );
   const canBrowse = !!twin?.api_url && !twin.candidate_torn_down && healthChecksPassed;
 
+  const handleTeardownExpired = useCallback(() => {
+    const id = setInterval(() => environmentsQuery.refetch(), 3000);
+    setTimeout(() => clearInterval(id), 30_000);
+  }, [environmentsQuery]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -80,7 +85,7 @@ export function DeploymentPage() {
                 </a>
                 {twin.auto_teardown_at ? (
                   <div className="mt-1">
-                    <TeardownCountdown teardownAt={twin.auto_teardown_at} />
+                    <TeardownCountdown teardownAt={twin.auto_teardown_at} onExpired={handleTeardownExpired} />
                   </div>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground">

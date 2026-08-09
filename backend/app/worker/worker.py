@@ -2,13 +2,14 @@
 
 import logging
 import platform
+from datetime import datetime, timezone
 
 from rq import SimpleWorker, Worker
 
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models.deployment import Deployment
-from app.models.enums import DeploymentStatus, ReleaseStatus
+from app.models.enums import DeploymentStatus, EnvironmentKind, ReleaseStatus
 from app.models.environment import Environment
 from app.models.release import Release
 from app.worker.queue import RELEASE_QUEUE_NAME, get_redis_connection, get_release_queue
@@ -83,9 +84,53 @@ def _purge_stale_queue() -> None:
         logger.warning("Purged %d stale job(s) from the %s queue on startup", purged, RELEASE_QUEUE_NAME)
 
 
+def _teardown_overdue_candidates() -> None:
+    """Tears down candidate services whose auto_teardown_at has passed.
+
+    enqueue_in scheduled jobs are lost when the worker restarts (the startup
+    _purge_stale_queue wipes them, and even without that a restart at the exact
+    fire moment can lose the job). This catches any that slipped through."""
+    db = SessionLocal()
+    try:
+        overdue = (
+            db.query(Environment)
+            .filter(
+                Environment.kind == EnvironmentKind.CANDIDATE,
+                Environment.auto_teardown_at <= datetime.now(timezone.utc),
+                Environment.zerops_service_stack_id.isnot(None),
+            )
+            .all()
+        )
+        if not overdue:
+            return
+
+        from app.services.zerops_client import get_zerops_client
+        import httpx
+
+        zerops = get_zerops_client()
+        if zerops is None:
+            return
+
+        for env in overdue:
+            try:
+                zerops.delete_service_stack(env.zerops_service_stack_id)
+                logger.info("Overdue teardown: deleted Zerops service %s", env.zerops_service_stack_id)
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code not in (400, 404):
+                    logger.exception("Failed overdue teardown for service %s", env.zerops_service_stack_id)
+            except Exception:
+                logger.exception("Failed overdue teardown for service %s", env.zerops_service_stack_id)
+            env.zerops_service_stack_id = None
+        db.commit()
+        logger.info("Overdue teardown: cleaned up %d candidate(s)", len(overdue))
+    finally:
+        db.close()
+
+
 def main() -> None:
     _fail_orphaned_releases()
     _purge_stale_queue()
+    _teardown_overdue_candidates()
 
     # RQ's default Worker forks a work-horse process per job. On macOS that reliably
     # segfaults once native-extension libraries (e.g. PyYAML's C backend) are loaded
