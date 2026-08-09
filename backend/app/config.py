@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
 
+    # Fernet key (44-char urlsafe-base64) used to encrypt sensitive columns at rest
+    # (Project.github_token, Project.env_vars). Generate with:
+    #   python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    field_encryption_key: str = "_LadxmhCB0iTPaXFYYoSjwTprbcFUoWfkdOka3kxUH4="
+
 
 @lru_cache
 def get_settings() -> Settings:
