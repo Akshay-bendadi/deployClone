@@ -13,7 +13,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-import { useDeploymentStepsQuery, useTeardownCandidateMutation } from "../hooks/queries/useDeployments";
+import { Skeleton } from "../components/ui/skeleton";
+import {
+  useDeploymentStepsQuery,
+  useTeardownCandidateMutation,
+} from "../hooks/queries/useDeployments";
 import { useEnvironmentsQuery } from "../hooks/queries/useEnvironments";
 import { useProjectContext } from "../hooks/useProjectContext";
 
@@ -26,7 +30,9 @@ export function DeploymentPage() {
   const environmentsQuery = useEnvironmentsQuery(latestRelease.id, isActive);
   // A release can be retried multiple times, each creating a new twin environment
   // (ordered oldest-first by the API) — always show the latest attempt, not the first.
-  const candidates = environmentsQuery.data?.filter((environment) => environment.kind === "candidate");
+  const candidates = environmentsQuery.data?.filter(
+    (environment) => environment.kind === "candidate",
+  );
   const candidate = candidates?.[candidates.length - 1];
   const deploymentsQuery = useDeploymentStepsQuery(candidate?.id, isActive);
   const teardownMutation = useTeardownCandidateMutation(latestRelease.id);
@@ -48,7 +54,13 @@ export function DeploymentPage() {
         </p>
       </div>
 
-      {!candidate ? (
+      {environmentsQuery.isLoading ? (
+        <Card className="grid gap-3 p-6">
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-5/6" />
+          <Skeleton className="h-5 w-4/6" />
+        </Card>
+      ) : !candidate ? (
         <Card className="p-6">
           <p className="text-sm text-muted-foreground">
             {isActive
@@ -83,9 +95,9 @@ export function DeploymentPage() {
                   <DialogHeader>
                     <DialogTitle>Delete the {twinLabel}?</DialogTitle>
                     <DialogDescription>
-                      Permanently deletes the running Zerops service for this twin. The
-                      deployment history and test results stay intact &mdash; only the live app
-                      is removed. This can&rsquo;t be undone.
+                      Permanently deletes the running Zerops service for this twin. The deployment
+                      history and test results stay intact &mdash; only the live app is removed.
+                      This can&rsquo;t be undone.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
@@ -96,7 +108,9 @@ export function DeploymentPage() {
                       className="bg-block text-block-foreground hover:opacity-90"
                       disabled={teardownMutation.isPending}
                       onClick={() =>
-                        teardownMutation.mutate(undefined, { onSuccess: () => setConfirmOpen(false) })
+                        teardownMutation.mutate(undefined, {
+                          onSuccess: () => setConfirmOpen(false),
+                        })
                       }
                     >
                       {teardownMutation.isPending ? "Deleting..." : "Delete twin"}
@@ -115,12 +129,22 @@ export function DeploymentPage() {
           ) : null}
 
           <Card className="grid gap-3 p-6">
-            {deploymentsQuery.data?.map((step) => (
-              <DeploymentStepRow key={step.id} step={step} />
-            ))}
-            {deploymentsQuery.data?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No steps recorded yet.</p>
-            ) : null}
+            {deploymentsQuery.isLoading ? (
+              <>
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-3/4" />
+              </>
+            ) : (
+              <>
+                {deploymentsQuery.data?.map((step) => (
+                  <DeploymentStepRow key={step.id} step={step} />
+                ))}
+                {deploymentsQuery.data?.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No steps recorded yet.</p>
+                ) : null}
+              </>
+            )}
           </Card>
         </>
       )}

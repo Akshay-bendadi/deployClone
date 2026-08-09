@@ -1,5 +1,6 @@
 import { ComparisonCard } from "../components/evidence/comparisonCard";
 import { Card } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 import { useComparisonsQuery } from "../hooks/queries/useComparisons";
 import { useProjectContext } from "../hooks/useProjectContext";
 
@@ -17,7 +18,12 @@ export function EvidencePage() {
         <p className="mt-1 text-sm text-muted-foreground">Regression evidence per category.</p>
       </div>
 
-      {comparisonsQuery.isSuccess && withRegressions.length === 0 ? (
+      {comparisonsQuery.isLoading ? (
+        <div className="grid gap-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : comparisonsQuery.isSuccess && withRegressions.length === 0 ? (
         <Card className="p-6">
           <p className="text-sm text-muted-foreground">
             No regressions found yet &mdash; either the release hasn't been tested, or the{" "}
