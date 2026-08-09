@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,8 +12,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://releasetwin:releasetwin@localhost:5544/releasetwin"
     valkey_url: str = "redis://localhost:6380/0"
 
-    zerops_api_token: str | None = None
-    zerops_project_id: str | None = None
+    zerops_api_token: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ZEROPS_API_TOKEN", "DC_ZEROPS_API_TOKEN"),
+    )
+    zerops_project_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ZEROPS_PROJECT_ID", "DC_ZEROPS_PROJECT_ID"),
+    )
 
     github_token: str | None = None
 
