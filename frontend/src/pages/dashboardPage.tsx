@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 import { ReleaseStatusBadge } from "../components/status/releaseStatusBadge";
 import { RiskVerdictBadge } from "../components/status/riskVerdictBadge";
@@ -12,6 +13,7 @@ const TESTABLE_STATUSES = new Set(["CREATED", "SAFE", "REVIEW", "BLOCKED", "FAIL
 
 export function DashboardPage() {
   const { project, latestRelease } = useProjectContext();
+  const navigate = useNavigate();
   const isActivelyTesting =
     latestRelease.status === "DEPLOYING" || latestRelease.status === "TESTING";
 
@@ -23,7 +25,12 @@ export function DashboardPage() {
 
   function handleTestRelease() {
     testMutation.mutate(latestRelease.id, {
-      onSuccess: () => toast.success("Release test started"),
+      onSuccess: () => {
+        toast.success("Release test started");
+        // The deployment is what's actually happening right now — send the user
+        // there to watch it live instead of leaving them on an empty risk report.
+        navigate("deployment");
+      },
     });
   }
 
