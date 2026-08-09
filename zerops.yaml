@@ -1,71 +1,58 @@
 zerops:
-  # ── Frontend (static Nginx) ──────────────────────────────────────
+  # -- Frontend (static Nginx) --
   - setup: frontend
     build:
       base: nodejs@22
       buildCommands:
-        - cd frontend
-        - pnpm install --frozen-lockfile
-        - pnpm build
+        - cd frontend && pnpm install --frozen-lockfile --ignore-scripts
+        - cd frontend && pnpm build
       deployFiles: frontend/dist/~
       envVariables:
-        VITE_API_URL: ${zeropsSubdomain("api")}.app.zerops.io
+        VITE_API_URL: <your-api-subdomain-url>
     run:
       base: static
 
-  # ── Backend API ──────────────────────────────────────────────────
+  # -- Backend API --
   - setup: api
     build:
-      base: python@3.12
+      base: python@latest
       buildCommands:
-        - cd backend
-        - pip install --no-cache-dir -r requirements.txt
-        - pip install --no-cache-dir -r requirements-dev.txt
+        - cd backend && pip install --no-cache-dir -r requirements.txt --target .packages
       deployFiles: backend/~
     run:
-      base: python@3.12
+      base: python@latest
       ports:
         - port: 8000
           httpSupport: true
-      start: cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
+      start: sh -c 'python -m alembic upgrade head && exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000'
       envVariables:
+        PYTHONPATH: .packages
         ENVIRONMENT: production
-        DATABASE_URL: ${db_DATABASE_URL}
+        DATABASE_URL: postgresql+psycopg://${db_user}:${db_password}@${db_hostname}:${db_port}/${db_dbName}
         VALKEY_URL: ${valkey_connectionString}
-        JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-        FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
-        ZEROPS_API_TOKEN: ${ZEROPS_API_TOKEN}
-        ZEROPS_PROJECT_ID: ${ZEROPS_PROJECT_ID}
-        NVIDIA_API_KEY: ${NVIDIA_API_KEY}
-        CORS_ORIGINS: https://${zeropsSubdomain("frontend")}.app.zerops.io,http://localhost:5173
+        CORS_ORIGINS: <your-frontend-subdomain-url>,http://localhost:5173
+        JWT_SECRET_KEY: <generate-with-python3 -c "import secrets; print(secrets.token_hex(32))">
+        FIELD_ENCRYPTION_KEY: <generate-with-python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
+        DC_ZEROPS_API_TOKEN: <your-zerops-api-token>
+        DC_ZEROPS_PROJECT_ID: <your-zerops-project-id>
+        NVIDIA_API_KEY: <your-nvidia-api-key>
 
-  # ── Background worker ───────────────────────────────────────────
+  # -- Background worker --
   - setup: worker
     build:
-      base: python@3.12
+      base: python@latest
       buildCommands:
-        - cd backend
-        - pip install --no-cache-dir -r requirements.txt
-        - pip install --no-cache-dir -r requirements-dev.txt
+        - cd backend && pip install --no-cache-dir -r requirements.txt --target .packages
       deployFiles: backend/~
     run:
-      base: python@3.12
-      start: cd backend && python -m app.worker.worker
+      base: python@latest
+      start: sh -c 'exec python -m app.worker.worker'
       envVariables:
+        PYTHONPATH: .packages
         ENVIRONMENT: production
-        DATABASE_URL: ${db_DATABASE_URL}
+        DATABASE_URL: postgresql+psycopg://${db_user}:${db_password}@${db_hostname}:${db_port}/${db_dbName}
         VALKEY_URL: ${valkey_connectionString}
-        ZEROPS_API_TOKEN: ${ZEROPS_API_TOKEN}
-        ZEROPS_PROJECT_ID: ${ZEROPS_PROJECT_ID}
-        NVIDIA_API_KEY: ${NVIDIA_API_KEY}
-        FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
-
-  # ── PostgreSQL ───────────────────────────────────────────────────
-  - setup: db
-    run:
-      base: postgresql@16
-
-  # ── Valkey (Redis-compatible cache/queue) ────────────────────────
-  - setup: valkey
-    run:
-      base: valkey@8
+        FIELD_ENCRYPTION_KEY: <generate-with-python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
+        DC_ZEROPS_API_TOKEN: <your-zerops-api-token>
+        DC_ZEROPS_PROJECT_ID: <your-zerops-project-id>
+        NVIDIA_API_KEY: <your-nvidia-api-key>
