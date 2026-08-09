@@ -1,5 +1,8 @@
 # Resources & Acknowledgements
 
+> **Zerops Challenge — August 2026**
+> This project was built for the Zerops Hackathon. Deployed entirely on Zerops infrastructure.
+
 This document tracks the external tools, packages, platforms, and AI assistants used while
 building and researching this project.
 
@@ -47,6 +50,12 @@ building and researching this project.
 ## Development
 
 - **[Claude Code](https://claude.com/claude-code)** — used for development of this project.
+
+## Zerops Challenge
+
+- [Challenge livestream](https://zerops.io) — walkthrough of the challenge, rules, and a live build+deploy demo with ZCP
+- [Rules & resources page](https://zerops.io) — quickstart, docs, and submission instructions
+- Project submissions are open for early finishers
 
 ## Research
 

@@ -1,0 +1,71 @@
+zerops:
+  # ── Frontend (static Nginx) ──────────────────────────────────────
+  - setup: frontend
+    build:
+      base: nodejs@22
+      buildCommands:
+        - cd frontend
+        - pnpm install --frozen-lockfile
+        - pnpm build
+      deployFiles: frontend/dist/~
+      envVariables:
+        VITE_API_URL: ${zeropsSubdomain("api")}.app.zerops.io
+    run:
+      base: static
+
+  # ── Backend API ──────────────────────────────────────────────────
+  - setup: api
+    build:
+      base: python@3.12
+      buildCommands:
+        - cd backend
+        - pip install --no-cache-dir -r requirements.txt
+        - pip install --no-cache-dir -r requirements-dev.txt
+      deployFiles: backend/~
+    run:
+      base: python@3.12
+      ports:
+        - port: 8000
+          httpSupport: true
+      start: cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
+      envVariables:
+        ENVIRONMENT: production
+        DATABASE_URL: ${db_DATABASE_URL}
+        VALKEY_URL: ${valkey_connectionString}
+        JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+        FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
+        ZEROPS_API_TOKEN: ${ZEROPS_API_TOKEN}
+        ZEROPS_PROJECT_ID: ${ZEROPS_PROJECT_ID}
+        NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+        CORS_ORIGINS: https://${zeropsSubdomain("frontend")}.app.zerops.io,http://localhost:5173
+
+  # ── Background worker ───────────────────────────────────────────
+  - setup: worker
+    build:
+      base: python@3.12
+      buildCommands:
+        - cd backend
+        - pip install --no-cache-dir -r requirements.txt
+        - pip install --no-cache-dir -r requirements-dev.txt
+      deployFiles: backend/~
+    run:
+      base: python@3.12
+      start: cd backend && python -m app.worker.worker
+      envVariables:
+        ENVIRONMENT: production
+        DATABASE_URL: ${db_DATABASE_URL}
+        VALKEY_URL: ${valkey_connectionString}
+        ZEROPS_API_TOKEN: ${ZEROPS_API_TOKEN}
+        ZEROPS_PROJECT_ID: ${ZEROPS_PROJECT_ID}
+        NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+        FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
+
+  # ── PostgreSQL ───────────────────────────────────────────────────
+  - setup: db
+    run:
+      base: postgresql@16
+
+  # ── Valkey (Redis-compatible cache/queue) ────────────────────────
+  - setup: valkey
+    run:
+      base: valkey@8

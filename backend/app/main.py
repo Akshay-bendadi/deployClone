@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import auth, environments, health, projects, releases, workflows
+from app.config import get_settings
 from app.logging_config import configure_logging
 
 configure_logging()
@@ -13,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="deployClone API")
 
+settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     risk_review_max: int = 50
     risk_high_risk_max: int = 75
 
+    cors_origins: str = "http://localhost:5173"
     jwt_secret_key: str = "dev-only-insecure-secret-change-me"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
