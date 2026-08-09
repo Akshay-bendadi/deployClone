@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -12,7 +13,7 @@ class EnvironmentRead(BaseModel):
     release_id: uuid.UUID
     kind: EnvironmentKind
     api_url: str
-    # internal — used only to compute candidate_torn_down below, never serialized itself
+    auto_teardown_at: datetime | None = None
     zerops_service_stack_id: str | None = Field(default=None, exclude=True)
 
     @computed_field  # type: ignore[prop-decorator]

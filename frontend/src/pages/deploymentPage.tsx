@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { DeploymentStepRow } from "../components/deployment/deploymentStepRow";
+import { TeardownCountdown } from "../components/deployment/teardownCountdown";
 import { PageHeader } from "../components/layout/pageHeader";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -82,10 +83,16 @@ export function DeploymentPage() {
                 >
                   {candidate.api_url}
                 </a>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Left running so you can inspect it. Delete it when you&rsquo;re done to stop
-                  billing on Zerops.
-                </p>
+                {candidate.auto_teardown_at ? (
+                  <div className="mt-1">
+                    <TeardownCountdown teardownAt={candidate.auto_teardown_at} />
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Left running so you can inspect it. Delete it when you&rsquo;re done to stop
+                    billing on Zerops.
+                  </p>
+                )}
               </div>
               <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <DialogTrigger asChild>
