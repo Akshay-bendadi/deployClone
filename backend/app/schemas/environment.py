@@ -30,3 +30,4 @@ class DeploymentRead(BaseModel):
     environment_id: uuid.UUID
     step: str
     status: DeploymentStatus
+    reason: str | None

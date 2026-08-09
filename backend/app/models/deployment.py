@@ -21,5 +21,8 @@ class Deployment(Base, IdMixin, CreatedAtMixin):
     status: Mapped[DeploymentStatus] = mapped_column(
         Enum(DeploymentStatus, name="deployment_status"), default=DeploymentStatus.PENDING
     )
+    # Set only on failure — the human-readable reason (e.g. "never responded after 30s"),
+    # previously only ever reached a server log and was invisible to the user.
+    reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     environment: Mapped["Environment"] = relationship(back_populates="deployments")

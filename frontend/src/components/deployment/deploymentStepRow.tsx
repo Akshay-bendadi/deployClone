@@ -16,11 +16,16 @@ const STEP_CLASS: Record<DeploymentStatus, string> = {
 
 export function DeploymentStepRow({ step }: { step: Deployment }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className={`font-mono text-lg ${STEP_CLASS[step.status]}`}>
-        {STEP_ICON[step.status]}
-      </span>
-      <span className="text-sm leading-6">{step.step}</span>
+    <div className="grid gap-1">
+      <div className="flex items-center gap-3">
+        <span className={`font-mono text-lg ${STEP_CLASS[step.status]}`}>
+          {STEP_ICON[step.status]}
+        </span>
+        <span className="text-sm leading-6">{step.step}</span>
+      </div>
+      {step.status === "failed" && step.reason ? (
+        <p className="pl-8 text-sm leading-6 text-block">{step.reason}</p>
+      ) : null}
     </div>
   );
 }

@@ -60,6 +60,7 @@ export type Deployment = {
   environment_id: string;
   step: string;
   status: DeploymentStatus;
+  reason: string | null;
 };
 
 export type WorkflowStep = {
