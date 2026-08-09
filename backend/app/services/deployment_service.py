@@ -182,6 +182,25 @@ def _strip_tarball_root(raw: bytes) -> bytes:
     return out_buffer.getvalue()
 
 
+def _strip_to_subdirectory(raw: bytes, root_directory: str) -> bytes:
+    """Keeps only files under root_directory and re-roots them, so the twin's
+    directory structure matches a production deploy of just that subdirectory."""
+    prefix = root_directory.strip("/") + "/"
+    src = tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz")
+    out_buffer = io.BytesIO()
+    with tarfile.open(fileobj=out_buffer, mode="w:gz") as dst:
+        for member in src.getmembers():
+            if not member.name.startswith(prefix):
+                continue
+            new_name = member.name[len(prefix):]
+            if not new_name:
+                continue
+            extracted = src.extractfile(member) if member.isfile() else None
+            member.name = new_name
+            dst.addfile(member, extracted)
+    return out_buffer.getvalue()
+
+
 def _public_url(zerops: ZeropsClient, service_stack_id: str) -> str | None:
     service_stack = zerops.get_service_stack(service_stack_id)
     for entry in service_stack.get("userData", []):
@@ -286,6 +305,8 @@ def run_candidate_deployment(db: Session, release: Release) -> Environment:
     except GitHubError as exc:
         fail("Upload twin code", str(exc))
     tarball = _strip_tarball_root(tarball)
+    if project.root_directory:
+        tarball = _strip_to_subdirectory(tarball, project.root_directory)
     try:
         app_version_id, upload_url = zerops.create_app_version(service_stack_id)
         zerops.upload_artifact(upload_url, tarball)

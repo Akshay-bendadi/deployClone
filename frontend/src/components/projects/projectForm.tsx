@@ -36,6 +36,7 @@ const projectFormSchema = z.object({
   github_token: z.string(),
   build_command: z.string(),
   start_command: z.string().min(1, "Start command is required"),
+  root_directory: z.string(),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -124,6 +125,7 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
           github_token: "",
           build_command: project.build_command ?? "",
           start_command: project.start_command ?? "",
+          root_directory: project.root_directory ?? "",
         }
       : {
           name: "",
@@ -135,6 +137,7 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
           github_token: "",
           build_command: "",
           start_command: "",
+          root_directory: "",
         },
   });
 
@@ -185,7 +188,11 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
     (repositoryBranchesMutation.isError || projectBranchesQuery.isError);
 
   const onSubmit: SubmitHandler<ProjectFormValues> = (values) => {
-    const payload = { ...values, github_token: values.github_token || undefined };
+    const payload = {
+      ...values,
+      github_token: values.github_token || undefined,
+      root_directory: values.root_directory || undefined,
+    };
     activeMutation.mutate(payload, {
       onSuccess: () => {
         toast.success(isEditMode ? "Project updated" : "Project created");
@@ -356,6 +363,13 @@ export function ProjectForm({ project, onSuccess }: { project?: Project; onSucce
                   {form.formState.errors.start_command.message}
                 </span>
               ) : null}
+            </Label>
+            <Label className="grid gap-2">
+              <FieldLabel hint="For monorepos where the app lives in a subdirectory (e.g. &quot;backend&quot; or &quot;packages/api&quot;). The twin deploys only that directory's contents, matching production's structure. Leave blank if the app is at the repo root.">
+                Root directory{" "}
+                <span className="font-normal text-muted-foreground">(optional)</span>
+              </FieldLabel>
+              <Input {...form.register("root_directory")} placeholder="e.g. backend" />
             </Label>
           </div>
 

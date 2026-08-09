@@ -11,6 +11,7 @@ export type CreateProjectPayload = {
   github_token?: string;
   build_command?: string;
   start_command: string;
+  root_directory?: string;
 };
 
 export type UpdateProjectPayload = CreateProjectPayload;

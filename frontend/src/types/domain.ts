@@ -31,6 +31,7 @@ export type Project = {
   env_vars: EnvVar[];
   build_command: string | null;
   start_command: string | null;
+  root_directory: string | null;
   latest_release_status: ReleaseStatus | null;
 };
 
