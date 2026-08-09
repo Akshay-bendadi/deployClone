@@ -1,5 +1,9 @@
+import { useNavigate } from "react-router-dom";
+
 import { WorkflowResultRow } from "../components/testRun/workflowResultRow";
+import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 import { useEnvironmentsQuery } from "../hooks/queries/useEnvironments";
 import { useTestRunsQuery } from "../hooks/queries/useTestRuns";
 import { useWorkflowsQuery } from "../hooks/queries/useWorkflows";
@@ -7,6 +11,7 @@ import { useProjectContext } from "../hooks/useProjectContext";
 
 export function TestRunPage() {
   const { project, latestRelease } = useProjectContext();
+  const navigate = useNavigate();
   const isActive = latestRelease.status === "DEPLOYING" || latestRelease.status === "TESTING";
 
   const workflowsQuery = useWorkflowsQuery(project.id);
@@ -32,11 +37,23 @@ export function TestRunPage() {
         </p>
       </div>
 
-      {workflows.length === 0 ? (
-        <Card className="p-6">
-          <p className="text-sm text-muted-foreground">
-            No workflows defined for this project yet — add one via the API to enable testing.
-          </p>
+      {workflowsQuery.isLoading ? (
+        <div className="grid gap-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : workflows.length === 0 ? (
+        <Card className="grid gap-3 p-6">
+          <div>
+            <p className="text-sm font-medium">No workflows defined yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Test Run and Evidence stay empty until at least one workflow exists to actually
+              compare production against the twin.
+            </p>
+          </div>
+          <Button className="justify-self-start" onClick={() => navigate("../workflows")}>
+            Add a workflow
+          </Button>
         </Card>
       ) : (
         <div className="grid gap-3">
