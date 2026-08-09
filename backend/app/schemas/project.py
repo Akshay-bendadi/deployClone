@@ -23,6 +23,7 @@ class ProjectCreate(BaseModel):
     # than depending on the target repo having its own (most repos won't)
     build_command: str | None = None
     start_command: str
+    root_directory: str | None = None
 
     @field_validator("start_command")
     @classmethod
@@ -44,6 +45,7 @@ class ProjectUpdate(BaseModel):
     github_token: str | None = None
     build_command: str | None = None
     start_command: str
+    root_directory: str | None = None
 
     @field_validator("start_command")
     @classmethod
@@ -66,6 +68,7 @@ class ProjectRead(BaseModel):
     env_vars: list[EnvVar]
     build_command: str | None
     start_command: str | None
+    root_directory: str | None
     # Set by the list/get route from the project's most recent release (not a DB column) —
     # lets the projects list show real status at a glance instead of just static config.
     latest_release_status: ReleaseStatus | None = None

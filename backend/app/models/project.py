@@ -40,6 +40,7 @@ class Project(Base, IdMixin, CreatedAtMixin):
     # repo having its own zerops.yaml (most repos won't). None/empty means no build step.
     build_command: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     start_command: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    root_directory: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     owner: Mapped["User"] = relationship(back_populates="projects")
     releases: Mapped[list["Release"]] = relationship(back_populates="project", cascade="all, delete-orphan")

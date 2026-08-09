@@ -95,8 +95,6 @@ def run_release_test(release_id: str) -> None:
             logger.exception("run_release_test crashed for release %s", release_id)
             release.status = ReleaseStatus.FAILED
             db.commit()
-            # Crash safety net — deployment state here is unknown, so tear down
-            # whatever candidate might exist rather than risk leaving it running.
             _cleanup_candidate(db, release)
             raise
     finally:
@@ -204,8 +202,6 @@ def _run_release_test(db: Session, release: Release) -> None:
         logger.warning("Candidate deployment failed for release %s at %s: %s", release.id, exc.step, exc.reason)
         release.status = ReleaseStatus.FAILED
         db.commit()
-        # Deployment itself never succeeded — nothing live to inspect, so clean up now
-        # rather than leaving a broken/half-provisioned service running.
         _cleanup_candidate(db, release)
         return
 
