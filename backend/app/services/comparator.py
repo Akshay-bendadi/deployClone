@@ -1,4 +1,4 @@
-"""Deterministic comparison engine (plan.txt §23-26).
+"""Deterministic comparison engine.
 
 Pure functions: given production and candidate evidence, return regression
 findings. No DB or network access here — callers persist the results.
@@ -36,7 +36,7 @@ def compare_functional(
     production_error: str | None = None,
     candidate_error: str | None = None,
 ) -> list[RegressionFinding]:
-    """Compares HTTP status, response schema, and errors (plan.txt §23-24)."""
+    """Compares HTTP status, response schema, and errors."""
     findings: list[RegressionFinding] = []
 
     production_ok = production_status is not None and 200 <= production_status < 300
@@ -80,7 +80,7 @@ def compare_functional(
 
 
 def compare_performance(*, production_p95_ms: float, candidate_p95_ms: float) -> list[RegressionFinding]:
-    """Compares P95 latency (plan.txt §25)."""
+    """Compares P95 latency."""
     if production_p95_ms <= 0:
         return []
 
@@ -106,7 +106,7 @@ def compare_worker(
     candidate_success: int,
     candidate_total: int,
 ) -> list[RegressionFinding]:
-    """Compares background job success/failure rate (plan.txt §26)."""
+    """Compares background job success/failure rate."""
     if production_total <= 0 or candidate_total <= 0:
         return []
 

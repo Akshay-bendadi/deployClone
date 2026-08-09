@@ -1,4 +1,4 @@
-"""Resolves a branch name to its latest commit SHA via the GitHub REST API (plan.txt §6)."""
+"""Resolves a branch name to its latest commit SHA via the GitHub REST API."""
 
 import re
 
@@ -105,7 +105,7 @@ def download_repo_tarball(repository: str, commit_sha: str, token: str | None = 
 
     Needed because Zerops' buildFromGit only supports a repo's default branch (no ref
     pinning) — for a candidate to test the release's exact commit, we download the
-    tarball ourselves and upload it to Zerops directly (plan.txt §16 step 4).
+    tarball ourselves and upload it to Zerops directly.
     """
     owner, repo = parse_github_repository(repository)
     effective_token = token or get_settings().github_token
